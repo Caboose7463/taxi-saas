@@ -23,9 +23,15 @@ export default function HotelLogin() {
 
       if (res.ok) {
         const result = await res.json();
-        // Store JWT in cookie for middleware to pick up
         document.cookie = `token=${result.access_token}; path=/; max-age=604800`;
-        router.push('/');
+        // Read subdomain from JWT payload and redirect to hotel dashboard
+        try {
+          const payload = JSON.parse(atob(result.access_token.split('.')[1]));
+          const subdomain = result.staff?.subdomain || payload.subdomain || 'grandhotel';
+          router.push(`/hotel/${subdomain}`);
+        } catch {
+          router.push('/hotel/grandhotel');
+        }
       } else {
         const err = await res.json();
         alert(err.message || 'Invalid credentials');

@@ -1,2 +1,2 @@
-// Central API config - hardcoded to guarantee it works regardless of env var issues
-export const API_URL = "https://celebration-the-bowling-yeah.trycloudflare.com";
+// Production backend URL - permanently hosted on Render
+export const API_URL = "https://taxi-saas-backend.onrender.com";
