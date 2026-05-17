@@ -2,7 +2,7 @@ services:
   - type: web
     name: taxi-saas-backend
     env: node
-    buildCommand: npm install --include=dev && cd apps/api && npx prisma generate && npm run build
+    buildCommand: chmod +x build.sh && ./build.sh
     startCommand: cd apps/api && npm run start:prod
     envVars:
       - key: DATABASE_URL
