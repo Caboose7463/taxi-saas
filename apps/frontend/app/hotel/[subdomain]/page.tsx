@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -8,7 +9,7 @@ export default function HotelDashboard() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const apiUrl = API_URL;
     const newSocket = io(apiUrl);
     setSocket(newSocket);
     
@@ -61,7 +62,7 @@ export default function HotelDashboard() {
               
               try {
                 // 1. Get dynamic pricing from Google Maps API
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                const apiUrl = API_URL;
                 const estRes = await fetch(`${apiUrl}/api/v1/bookings/estimate`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
