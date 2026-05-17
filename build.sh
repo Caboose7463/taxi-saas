@@ -11,6 +11,8 @@ npm install --include=dev
 echo "Setting up API..."
 cd apps/api
 npm install dotenv ts-node typescript @prisma/config
+# Force Prisma v5 (v7 requires driver adapters which break standard DATABASE_URL usage)
+npm install prisma@5.22.0 @prisma/client@5.22.0 --save
 
 # 3. Write .env file HERE (inside apps/api) for runtime
 DB_URL="${DATABASE_URL:-postgresql://postgres.hqbhcxgccvlsdrqnljbp:HettieBells0!2345@aws-1-eu-north-1.pooler.supabase.com:5432/postgres}"
