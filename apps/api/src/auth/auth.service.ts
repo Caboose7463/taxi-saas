@@ -47,6 +47,8 @@ export class AuthService {
         status: driver.status
       }
     };
+  }
+
   async loginHotelStaff(data: any) {
     const staff = await this.prisma.hotelStaff.findUnique({
       where: { email: data.email },
@@ -74,6 +76,8 @@ export class AuthService {
         subdomain: staff.hotel.subdomain
       }
     };
+  }
+
   async loginDriver(data: any) {
     const driver = await this.prisma.driver.findUnique({
       where: { email: data.email }
