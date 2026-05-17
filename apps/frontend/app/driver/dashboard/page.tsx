@@ -1,4 +1,5 @@
 "use client";
+import { API_URL } from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -8,7 +9,7 @@ export default function DriverDashboard() {
   const [incomingBooking, setIncomingBooking] = useState<any>(null);
   
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io(API_URL);
     setSocket(newSocket);
 
     // Listen for incoming booking broadcasts from the backend
@@ -24,7 +25,7 @@ export default function DriverDashboard() {
 
   const handleAcceptBooking = async () => {
     try {
-      const res = await fetch(`http://localhost:3001/api/v1/bookings/${incomingBooking.id}/accept`, {
+      const res = await fetch(`API_URL + '/api/v1/bookings/${incomingBooking.id}/accept`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ driverId: 'me' }) // usually from context/JWT
