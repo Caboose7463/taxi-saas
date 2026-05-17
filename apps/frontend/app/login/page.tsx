@@ -14,7 +14,7 @@ export default function HotelLogin() {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const res = await fetch('http://localhost:3001/api/v1/auth/hotel/login', {
+      const res = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/auth/hotel/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
