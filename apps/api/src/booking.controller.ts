@@ -1,10 +1,25 @@
-import { Controller, Post, Body, Get, Param, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Headers, UnauthorizedException } from '@nestjs/common';
 import { BookingService } from './booking.service';
-import { Prisma } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
 
 @Controller('api/v1/bookings')
 export class BookingController {
-  constructor(private readonly bookingService: BookingService) {}
+  constructor(
+    private readonly bookingService: BookingService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private extractHotelId(authHeader: string | undefined): string {
+    if (!authHeader) throw new UnauthorizedException('No token provided');
+    const token = authHeader.replace('Bearer ', '');
+    try {
+      const payload = this.jwtService.verify(token) as any;
+      if (!payload.hotelId) throw new UnauthorizedException('Not a hotel account');
+      return payload.hotelId;
+    } catch {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
 
   @Post('estimate')
   async estimateFare(@Body() body: { pickup: string; dropoff: string }) {
@@ -12,8 +27,19 @@ export class BookingController {
   }
 
   @Post()
-  async create(@Body() createBookingDto: Prisma.BookingUncheckedCreateInput) {
-    return this.bookingService.createBooking(createBookingDto);
+  async create(
+    @Body() body: { pickupAddress: string; dropoffAddress: string; fare: number; hotelCommission: number; },
+    @Headers('authorization') auth: string,
+  ) {
+    // Always extract hotelId from the JWT - never trust the client
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.createBooking({
+      hotelId,
+      pickupAddress: body.pickupAddress,
+      dropoffAddress: body.dropoffAddress,
+      fare: Number(body.fare),
+      hotelCommission: Number(body.hotelCommission),
+    });
   }
 
   @Get('active')
@@ -21,8 +47,26 @@ export class BookingController {
     return this.bookingService.getActiveBookings();
   }
 
+  @Get('hotel')
+  async getHotelBookings(@Headers('authorization') auth: string) {
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.getHotelBookings(hotelId);
+  }
+
   @Patch(':id/accept')
-  async acceptBooking(@Param('id') id: string, @Body('driverId') driverId: string) {
-    return this.bookingService.acceptBooking(id, driverId);
+  async acceptBooking(
+    @Param('id') id: string,
+    @Body('driverId') driverId: string,
+    @Headers('authorization') auth: string,
+  ) {
+    const token = auth?.replace('Bearer ', '');
+    let resolvedDriverId = driverId;
+    if (!resolvedDriverId && token) {
+      try {
+        const payload = this.jwtService.verify(token) as any;
+        resolvedDriverId = payload.sub;
+      } catch {}
+    }
+    return this.bookingService.acceptBooking(id, resolvedDriverId || 'unknown');
   }
 }

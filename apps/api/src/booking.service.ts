@@ -120,15 +120,16 @@ export class BookingService {
 
   async getActiveBookings() {
     return this.prisma.booking.findMany({
-      where: {
-        status: {
-          in: ['PENDING', 'ACCEPTED', 'EN_ROUTE'],
-        },
-      },
-      include: {
-        hotel: true,
-        driver: true,
-      }
+      orderBy: { createdAt: 'desc' },
+      include: { hotel: true, driver: true },
+    });
+  }
+
+  async getHotelBookings(hotelId: string) {
+    return this.prisma.booking.findMany({
+      where: { hotelId },
+      orderBy: { createdAt: 'desc' },
+      include: { driver: true },
     });
   }
 

@@ -75,7 +75,8 @@ export default function HotelDashboard() {
     setBookingsLoading(true);
     try {
       const token = document.cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
-      const res = await fetch(`${API_URL}/api/v1/bookings/active`, {
+      // Use hotel-specific endpoint - backend extracts hotelId from JWT
+      const res = await fetch(`${API_URL}/api/v1/bookings/hotel`, {
         headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' }
       });
       if (res.ok) setBookings(await res.json());
@@ -111,8 +112,8 @@ export default function HotelDashboard() {
     setLoading(true);
     try {
       const token = document.cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
-      const hotelId = staffInfo.hotelId || 'default';
 
+      // Step 1: Get price estimate
       const estRes = await fetch(`${API_URL}/api/v1/bookings/estimate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true' },
@@ -120,11 +121,15 @@ export default function HotelDashboard() {
       });
       const est = await estRes.json();
 
+      // Step 2: Create booking - server extracts hotelId from JWT, no need to send it
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'bypass-tunnel-reminder': 'true',
+          Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({
-          hotelId,
           pickupAddress: pickup,
           dropoffAddress: dropoff,
           fare: est.fare,
@@ -137,14 +142,13 @@ export default function HotelDashboard() {
         setDropoff('');
         setEstimate(null);
         setTimeout(() => setSuccessMsg(''), 6000);
-        // Refresh bookings
         fetchBookings();
       } else {
-        const err = await res.json().catch(() => ({}));
-        alert('Error creating booking: ' + (err.message || res.status));
+        const err = await res.json().catch(() => ({ message: 'Unknown error' }));
+        alert('Booking failed: ' + (err.message || res.status));
       }
     } catch (err) {
-      alert('Network error — please try again');
+      alert('Network error — check your connection and try again');
     }
     setLoading(false);
   };
