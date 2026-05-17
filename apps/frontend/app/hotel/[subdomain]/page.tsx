@@ -33,9 +33,9 @@ export default function HotelDashboard() {
   const [estimate, setEstimate] = useState<{ fare: number; distance: string } | null>(null);
   const [estimating, setEstimating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [pickup, setPickup] = useState('The Grand Hotel, London');
+  const [pickup, setPickup] = useState('');
   const [dropoff, setDropoff] = useState('');
-  const [staffInfo, setStaffInfo] = useState({ name: 'Reception', hotel: 'The Grand Hotel' });
+  const [staffInfo, setStaffInfo] = useState({ name: 'Reception', hotel: 'Hotel', hotelId: '', hotelAddress: '', commissionRate: 15 });
 
   // Animate driver dots
   useEffect(() => {
@@ -57,12 +57,14 @@ export default function HotelDashboard() {
       }));
     }, 2000);
 
-    // Load staff from cookie/token
+    // Load staff info from localStorage (saved at login)
     try {
-      const token = document.cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
-      if (token) {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        if (payload.hotel) setStaffInfo({ name: 'Reception', hotel: payload.hotel });
+      const saved = localStorage.getItem('staffInfo');
+      if (saved) {
+        const info = JSON.parse(saved);
+        setStaffInfo(info);
+        // Use the hotel's real address as default pickup
+        if (info.hotelAddress) setPickup(info.hotelAddress);
       }
     } catch {}
 
@@ -109,8 +111,7 @@ export default function HotelDashboard() {
     setLoading(true);
     try {
       const token = document.cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1];
-      let hotelId = 'default';
-      try { const p = JSON.parse(atob(token!.split('.')[1])); hotelId = p.hotelId || hotelId; } catch {}
+      const hotelId = staffInfo.hotelId || 'default';
 
       const estRes = await fetch(`${API_URL}/api/v1/bookings/estimate`, {
         method: 'POST',
@@ -122,16 +123,29 @@ export default function HotelDashboard() {
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ hotelId, pickupAddress: pickup, dropoffAddress: dropoff, fare: est.fare || 28.50, hotelCommission: est.hotelCommission || 4.28 })
+        body: JSON.stringify({
+          hotelId,
+          pickupAddress: pickup,
+          dropoffAddress: dropoff,
+          fare: est.fare,
+          hotelCommission: est.hotelCommission,
+        })
       });
 
       if (res.ok) {
-        setSuccessMsg(`✅ Booking confirmed! A driver has been dispatched.`);
+        setSuccessMsg(`✅ Booking confirmed! Dispatched to nearby drivers.`);
         setDropoff('');
         setEstimate(null);
-        setTimeout(() => setSuccessMsg(''), 5000);
+        setTimeout(() => setSuccessMsg(''), 6000);
+        // Refresh bookings
+        fetchBookings();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert('Error creating booking: ' + (err.message || res.status));
       }
-    } catch { alert('Error creating booking'); }
+    } catch (err) {
+      alert('Network error — please try again');
+    }
     setLoading(false);
   };
 

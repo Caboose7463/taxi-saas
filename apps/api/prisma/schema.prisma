@@ -11,9 +11,10 @@ model Hotel {
   id              String       @id @default(uuid())
   name            String
   subdomain       String       @unique
+  address         String       @default("")
   brand_color     String?      @default("#2563eb")
   logo_url        String?
-  commission_rate Float        @default(2.5)
+  commission_rate Float        @default(15.0)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   bookings        Booking[]

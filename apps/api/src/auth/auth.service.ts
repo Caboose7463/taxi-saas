@@ -73,6 +73,9 @@ export class AuthService {
         name: staff.name,
         email: staff.email,
         hotel: staff.hotel.name,
+        hotelId: staff.hotel.id,
+        hotelAddress: staff.hotel.address,
+        commissionRate: staff.hotel.commission_rate,
         subdomain: staff.hotel.subdomain
       }
     };
