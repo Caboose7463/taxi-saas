@@ -14,7 +14,7 @@ export default function DriverSignup() {
     const data = Object.fromEntries(formData.entries());
 
     try {
-      const res = await fetch('http://localhost:3001/api/v1/auth/driver/signup', {
+      const res = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/auth/driver/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
