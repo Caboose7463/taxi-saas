@@ -6,6 +6,6 @@ services:
     startCommand: cd apps/api && npm run start:prod
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql://postgres.hqbhcxgccvlsdrqnljbp:HettieBells0%212345@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
       - key: GOOGLE_MAPS_API_KEY
         sync: false
