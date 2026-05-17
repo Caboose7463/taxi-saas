@@ -16,7 +16,7 @@ export default function HotelLogin() {
     try {
       const res = await fetch(process.env.NEXT_PUBLIC_API_URL + '/api/v1/auth/hotel/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'bypass-tunnel-reminder': 'true' },
         body: JSON.stringify(data),
       });
 
