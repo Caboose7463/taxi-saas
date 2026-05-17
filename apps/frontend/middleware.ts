@@ -7,10 +7,10 @@ export function middleware(request: NextRequest) {
 
   const hostname = request.headers.get('host') || '';
   
-  // Determine if there is a subdomain (e.g. grandhotel.taxisaas.com or grandhotel.localhost:3000)
-  // Localhost example: grandhotel.localhost:3000 -> split by '.' gives ['grandhotel', 'localhost:3000']
+  // Determine if there is a subdomain
   const hostParts = hostname.split('.');
-  const hasSubdomain = hostParts.length > 1 && !hostname.startsWith('localhost') && !hostname.startsWith('www');
+  const isVercel = hostname.includes('vercel.app');
+  const hasSubdomain = hostParts.length > 2 && !hostname.startsWith('localhost') && !hostname.startsWith('www') && !isVercel;
 
   // Define public routes that don't require authentication
   const isPublicRoute = path === '/login' || path === '/driver/signup' || path === '/driver/login';
