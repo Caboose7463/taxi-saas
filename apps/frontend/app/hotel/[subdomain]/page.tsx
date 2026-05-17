@@ -5,9 +5,11 @@ import { io, Socket } from 'socket.io-client';
 export default function HotelDashboard() {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [driverPos, setDriverPos] = useState({ x: 30, y: 70 });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    const newSocket = io(apiUrl);
     setSocket(newSocket);
     
     newSocket.on('driver_location', (payload) => {
@@ -59,7 +61,8 @@ export default function HotelDashboard() {
               
               try {
                 // 1. Get dynamic pricing from Google Maps API
-                const estRes = await fetch('http://localhost:3001/api/v1/bookings/estimate', {
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+                const estRes = await fetch(`${apiUrl}/api/v1/bookings/estimate`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ pickup, dropoff })
@@ -67,7 +70,7 @@ export default function HotelDashboard() {
                 const estimate = await estRes.json();
                 
                 // 2. Submit booking
-                const res = await fetch('http://localhost:3001/api/v1/bookings', {
+                const res = await fetch(`${apiUrl}/api/v1/bookings`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({

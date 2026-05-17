@@ -13,10 +13,10 @@ model Hotel {
   brand_color     String?      @default("#2563eb")
   logo_url        String?
   commission_rate Float        @default(2.5)
-  bookings        Booking[]
-  staff           HotelStaff[]
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
+  bookings        Booking[]
+  staff           HotelStaff[]
 }
 
 model HotelStaff {
@@ -25,37 +25,37 @@ model HotelStaff {
   name      String
   email     String   @unique
   password  String
-  hotel     Hotel    @relation(fields: [hotelId], references: [id])
   createdAt DateTime @default(now())
+  hotel     Hotel    @relation(fields: [hotelId], references: [id])
 }
 
 model Driver {
-  id          String    @id @default(uuid())
-  name        String
-  email       String    @unique
-  password    String
-  phone       String    @unique
-  status      String    @default("OFFLINE") // ONLINE, OFFLINE, BUSY
-  lat         Float?
-  lng         Float?
-  isApproved  Boolean   @default(false)
-  bookings    Booking[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(uuid())
+  name       String
+  email      String    @unique
+  password   String
+  phone      String    @unique
+  status     String    @default("OFFLINE")
+  lat        Float?
+  lng        Float?
+  isApproved Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  bookings   Booking[]
 }
 
 model Booking {
-  id               String   @id @default(uuid())
-  hotelId          String
-  driverId         String?
-  pickupAddress    String
-  dropoffAddress   String
-  scheduledFor     DateTime?
-  status           String   @default("PENDING") // PENDING, ACCEPTED, EN_ROUTE, COMPLETED, CANCELLED
-  fare             Float
-  hotelCommission  Float
-  hotel            Hotel    @relation(fields: [hotelId], references: [id])
-  driver           Driver?  @relation(fields: [driverId], references: [id])
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String    @id @default(uuid())
+  hotelId         String
+  driverId        String?
+  pickupAddress   String
+  dropoffAddress  String
+  scheduledFor    DateTime?
+  status          String    @default("PENDING")
+  fare            Float
+  hotelCommission Float
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  driver          Driver?   @relation(fields: [driverId], references: [id])
+  hotel           Hotel     @relation(fields: [hotelId], references: [id])
 }
