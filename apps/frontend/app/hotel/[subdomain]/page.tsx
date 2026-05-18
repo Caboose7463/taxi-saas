@@ -103,9 +103,12 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
     if (!pickup || !dropoff) return;
     setEstimating(true); setEstimate(null);
     try {
-      const r = await fetch(`${API_URL}/api/v1/bookings/estimate`, { method:'POST', headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true'}, body: JSON.stringify({pickup,dropoff}) });
+      const body: any = { pickup, dropoff };
+      if (pickupCoords) { body.pickupLat = pickupCoords.lat; body.pickupLng = pickupCoords.lng; }
+      if (dropoffCoords) { body.dropoffLat = dropoffCoords.lat; body.dropoffLng = dropoffCoords.lng; }
+      const r = await fetch(`${API_URL}/api/v1/bookings/estimate`, { method:'POST', headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true'}, body: JSON.stringify(body) });
       setEstimate(await r.json());
-    } catch { setEstimate({ fare: 15.50, hotelCommission: 0.39, driverPayout: 13.95, distance: '~5 miles (estimate)' }); }
+    } catch { setEstimate({ fare: 15.50, hotelCommission: 0.39, driverPayout: 13.95, distance: '~5 miles (estimate)', distanceMiles: 5 }); }
     setEstimating(false);
   };
 
@@ -117,13 +120,16 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
     try {
       let est = estimate;
       if (!est) {
-        const r = await fetch(`${API_URL}/api/v1/bookings/estimate`, { method:'POST', headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true'}, body:JSON.stringify({pickup,dropoff}) });
+        const body: any = { pickup, dropoff };
+        if (pickupCoords) { body.pickupLat = pickupCoords.lat; body.pickupLng = pickupCoords.lng; }
+        if (dropoffCoords) { body.dropoffLat = dropoffCoords.lat; body.dropoffLng = dropoffCoords.lng; }
+        const r = await fetch(`${API_URL}/api/v1/bookings/estimate`, { method:'POST', headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true'}, body:JSON.stringify(body) });
         est = await r.json();
       }
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method:'POST',
         headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${token}`},
-        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, scheduledFor: isScheduled ? scheduledFor : undefined })
+        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, passengerCount, distanceMiles: est.distanceMiles || 0, scheduledFor: isScheduled ? scheduledFor : undefined })
       });
       if (res.ok) {
         setSuccessMsg(isScheduled ? ` Scheduled for ${new Date(scheduledFor).toLocaleString('en-GB')}` : ' Booking confirmed! Dispatched to nearby drivers.');
