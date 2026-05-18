@@ -50,12 +50,16 @@ model Booking {
   id              String    @id @default(uuid())
   hotelId         String
   driverId        String?
+  guestName       String    @default("")
+  guestPhone      String    @default("")
+  notes           String    @default("")
   pickupAddress   String
   dropoffAddress  String
   scheduledFor    DateTime?
   status          String    @default("PENDING")
   fare            Float
   hotelCommission Float
+  driverPayout    Float     @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   driver          Driver?   @relation(fields: [driverId], references: [id])

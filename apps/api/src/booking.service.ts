@@ -17,9 +17,10 @@ export class BookingService {
   }
 
   async estimateFare(pickup: string, dropoff: string) {
-    const BASE_FARE = 4.50;   // £4.50 flag fall
-    const PER_MILE = 3.20;    // £3.20 per mile (premium rate)
-    const MIN_FARE = 15.00;   // minimum fare £15
+    const BASE_FARE = 3.50;       // £3.50 flag fall (original spec)
+    const PER_MILE = 2.50;        // £2.50 per mile (original spec)
+    const MIN_FARE = 8.00;        // minimum fare £8
+    const HOTEL_COMMISSION = 0.025; // 2.5% to hotel (original spec)
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
 
@@ -39,12 +40,13 @@ export class BookingService {
           const distanceMiles = element.distance.value / 1609.34;
           const rawFare = BASE_FARE + (distanceMiles * PER_MILE);
           const fare = Math.max(MIN_FARE, rawFare);
-          const commissionRate = 0.15;
           return {
             distanceMiles: Math.round(distanceMiles * 10) / 10,
             distance: `${Math.round(distanceMiles)} miles`,
             fare: Math.round(fare * 100) / 100,
-            hotelCommission: Math.round(fare * commissionRate * 100) / 100,
+            hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
+            driverPayout: Math.round(fare * 0.90 * 100) / 100,
+            platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
           };
         }
       } catch (error) {
@@ -96,13 +98,14 @@ export class BookingService {
 
     const rawFare = BASE_FARE + (estimatedMiles * PER_MILE);
     const fare = Math.max(MIN_FARE, rawFare);
-    const commissionRate = 0.15;
 
     return {
       distanceMiles: estimatedMiles,
       distance: `~${estimatedMiles} miles (estimate)`,
       fare: Math.round(fare * 100) / 100,
-      hotelCommission: Math.round(fare * commissionRate * 100) / 100,
+      hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
+      driverPayout: Math.round(fare * 0.90 * 100) / 100,
+      platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
     };
   }
 

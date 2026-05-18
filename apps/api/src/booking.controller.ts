@@ -28,10 +28,19 @@ export class BookingController {
 
   @Post()
   async create(
-    @Body() body: { pickupAddress: string; dropoffAddress: string; fare: number; hotelCommission: number; },
+    @Body() body: {
+      pickupAddress: string;
+      dropoffAddress: string;
+      fare: number;
+      hotelCommission: number;
+      driverPayout?: number;
+      guestName?: string;
+      guestPhone?: string;
+      notes?: string;
+      scheduledFor?: string;
+    },
     @Headers('authorization') auth: string,
   ) {
-    // Always extract hotelId from the JWT - never trust the client
     const hotelId = this.extractHotelId(auth);
     return this.bookingService.createBooking({
       hotelId,
@@ -39,6 +48,11 @@ export class BookingController {
       dropoffAddress: body.dropoffAddress,
       fare: Number(body.fare),
       hotelCommission: Number(body.hotelCommission),
+      driverPayout: Number(body.driverPayout || 0),
+      guestName: body.guestName || '',
+      guestPhone: body.guestPhone || '',
+      notes: body.notes || '',
+      scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : null,
     });
   }
 
