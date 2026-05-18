@@ -146,8 +146,8 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
     <div className="flex h-screen bg-[#F5F5F7]" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
       <aside className="w-56 bg-white border-r border-gray-100 flex flex-col p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm">T</div>
-          <span className="font-bold text-sm text-gray-900">TRANSIT PRO</span>
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm">{(staffInfo?.hotel||params.subdomain)[0].toUpperCase()}</div>
+          <span className="font-bold text-sm text-gray-900">{(staffInfo?.hotel||params.subdomain).toUpperCase()}</span>
         </div>
         <nav className="flex flex-col gap-1 flex-1">
           {([['book','Book a Taxi'],['active','Active Bookings'],['history','History'],['analytics','Analytics']] as const).map(([id,label])=>(

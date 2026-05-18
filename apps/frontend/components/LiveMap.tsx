@@ -9,7 +9,29 @@ export default function LiveMap({ hotelLat = 51.0693, hotelLng = -1.7942, driver
   const instanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const LRef = useRef<any>(null);
+  const driversRef = useRef<Driver[]>(drivers);
 
+  // Keep driversRef current so the init effect can access latest drivers
+  driversRef.current = drivers;
+
+  const renderDriverMarkers = (L: any, map: any, driverList: Driver[]) => {
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+    const colors = ['#2563EB','#7C3AED','#EA580C','#16A34A','#DC2626'];
+    driverList.forEach((d, i) => {
+      if (!d.lat || !d.lng) return;
+      const color = colors[i % colors.length];
+      const icon = L.divIcon({
+        html: `<div style="width:32px;height:32px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);color:#fff;font-size:11px;font-weight:700">${d.name?.charAt(0)?.toUpperCase()||'D'}</div>`,
+        className: '', iconSize: [32, 32], iconAnchor: [16, 16],
+      });
+      const m = L.marker([d.lat, d.lng], { icon }).addTo(map);
+      m.bindPopup(`<strong>${d.name}</strong><br/>${d.status||'Online'}`);
+      markersRef.current.push(m);
+    });
+  };
+
+  // Map init
   useEffect(() => {
     if (!mapRef.current || instanceRef.current) return;
 
@@ -23,7 +45,7 @@ export default function LiveMap({ hotelLat = 51.0693, hotelLng = -1.7942, driver
       });
 
       if (!mapRef.current) return;
-      const map = L.map(mapRef.current, { center: [hotelLat, hotelLng], zoom: 13, zoomControl: true });
+      const map = L.map(mapRef.current, { center: [hotelLat, hotelLng], zoom: 14, zoomControl: true });
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors', maxZoom: 19
       }).addTo(map);
@@ -34,6 +56,11 @@ export default function LiveMap({ hotelLat = 51.0693, hotelLng = -1.7942, driver
       });
       L.marker([hotelLat, hotelLng], { icon: hotelIcon }).addTo(map).bindPopup('<strong>Caboose Hotel</strong>');
       instanceRef.current = map;
+
+      // Render any drivers that already arrived before map was ready
+      if (driversRef.current.length > 0) {
+        renderDriverMarkers(L, map, driversRef.current);
+      }
     });
 
     return () => {
@@ -41,22 +68,10 @@ export default function LiveMap({ hotelLat = 51.0693, hotelLng = -1.7942, driver
     };
   }, [hotelLat, hotelLng]);
 
+  // Update driver markers when drivers prop changes
   useEffect(() => {
     if (!instanceRef.current || !LRef.current) return;
-    const L = LRef.current;
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-    const colors = ['#2563EB','#7C3AED','#EA580C','#16A34A','#DC2626'];
-    drivers.forEach((d, i) => {
-      const color = colors[i % colors.length];
-      const icon = L.divIcon({
-        html: `<div style="width:28px;height:28px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);color:#fff;font-size:9px;font-weight:700">${d.name?.charAt(0)||'D'}</div>`,
-        className: '', iconSize: [28, 28], iconAnchor: [14, 14],
-      });
-      const m = L.marker([d.lat, d.lng], { icon }).addTo(instanceRef.current);
-      m.bindPopup(`<strong>${d.name}</strong><br/>${d.status||'Online'}`);
-      markersRef.current.push(m);
-    });
+    renderDriverMarkers(LRef.current, instanceRef.current, drivers);
   }, [drivers]);
 
   return <div ref={mapRef} style={{ width: '100%', height, borderRadius: '12px', overflow: 'hidden' }} />;

@@ -270,7 +270,7 @@ export class BookingService {
   }
 
   async getOnlineDrivers() {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const fiveMinutesAgo = new Date(Date.now() - 2 * 60 * 60 * 1000); // 2 hour window
     return this.prisma.driver.findMany({
       where: {
         isOnline: true,
