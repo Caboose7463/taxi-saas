@@ -11,6 +11,7 @@ export default function DriverDashboard() {
   const [isOnline, setIsOnline] = useState(false);
   const [incomingBooking, setIncomingBooking] = useState<any>(null);
   const [activeBooking, setActiveBooking] = useState<any>(null);
+  const [completedBooking, setCompletedBooking] = useState<any>(null);
   const [earnings, setEarnings] = useState(0);
   const [ridesCompleted, setRidesCompleted] = useState(0);
   const [driverName, setDriverName] = useState('Driver');
@@ -96,12 +97,16 @@ export default function DriverDashboard() {
         method:'PATCH', headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${getToken()}`},
         body: JSON.stringify({ status: newStatus })
       });
-      if (newStatus==='COMPLETED') {
-        setEarnings(e=>e+(activeBooking.driverPayout||activeBooking.fare*0.9));
-        setRidesCompleted(r=>r+1);
+      if (newStatus === 'COMPLETED') {
+        const payout = activeBooking.driverPayout || activeBooking.fare * 0.9;
+        setEarnings(e => e + payout);
+        setRidesCompleted(r => r + 1);
+        setCompletedBooking({ ...activeBooking, payout });
         setActiveBooking(null);
+        // Auto-clear completion screen after 8 seconds
+        setTimeout(() => setCompletedBooking(null), 8000);
       } else {
-        setActiveBooking((b:any)=>({...b,status:newStatus}));
+        setActiveBooking((b:any) => ({...b, status: newStatus}));
       }
     } catch { alert('Error updating status'); }
   };
@@ -184,13 +189,53 @@ export default function DriverDashboard() {
                 <div className="flex items-start gap-2"><span className="text-red-500 text-xs mt-1">■</span><div><p className="text-xs text-gray-400">Drop-off</p><p className="text-sm font-medium">{activeBooking.dropoffAddress}</p></div></div>
                 {activeBooking.notes&&<p className="text-xs text-gray-400 italic border-t border-gray-200 pt-2">📝 {activeBooking.notes}</p>}
               </div>
-              {nextStatus&&(
-                <button onClick={()=>handleStatusUpdate(nextStatus)}
-                  className="w-full h-13 py-4 bg-black text-white rounded-2xl font-bold text-sm mb-2">
-                  {STATUS_LABELS[nextStatus]||nextStatus}
+              {nextStatus && (
+                <button onClick={() => handleStatusUpdate(nextStatus)}
+                  className={`w-full py-4 rounded-2xl font-bold text-sm mb-2 ${
+                    nextStatus === 'COMPLETED'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-black text-white'
+                  }`}>
+                  {nextStatus === 'COMPLETED' ? '✅ Mark as Complete' : STATUS_LABELS[nextStatus] || nextStatus}
                 </button>
               )}
-              {activeBooking.status==='COMPLETED'&&<p className="text-center text-green-600 font-bold">Job Complete! ✅</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Job completed celebration screen */}
+        {completedBooking && (
+          <div className="absolute inset-0 z-50 flex items-end justify-center">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setCompletedBooking(null)}/>
+            <div className="relative w-full bg-white rounded-t-[32px] p-8 shadow-2xl">
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-4xl">✅</span>
+                </div>
+                <h2 className="text-2xl font-black text-gray-900">Job Complete!</h2>
+                <p className="text-gray-500 text-sm mt-1">
+                  {completedBooking.guestName ? `${completedBooking.guestName} · ` : ''}
+                  {completedBooking.pickupAddress?.split(',')[0]} → {completedBooking.dropoffAddress?.split(',')[0]}
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="bg-green-50 rounded-2xl p-4 text-center">
+                  <p className="text-[10px] text-green-600 uppercase tracking-wide font-semibold">Earned</p>
+                  <p className="text-2xl font-black text-green-700">£{completedBooking.payout?.toFixed(2)}</p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">Miles</p>
+                  <p className="text-2xl font-black">{completedBooking.distanceMiles?.toFixed(1)||'?'}</p>
+                </div>
+                <div className="bg-gray-50 rounded-2xl p-4 text-center">
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">Today total</p>
+                  <p className="text-2xl font-black">£{earnings.toFixed(2)}</p>
+                </div>
+              </div>
+              <button onClick={() => setCompletedBooking(null)}
+                className="w-full py-4 bg-black text-white rounded-2xl font-bold text-sm">
+                Done — Back to Waiting
+              </button>
             </div>
           </div>
         )}
