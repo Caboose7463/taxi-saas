@@ -123,11 +123,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method:'POST',
         headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${token}`},
-        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, passengerCount, distanceMiles: est.distanceMiles || 0, scheduledFor: isScheduled ? scheduledFor : undefined })
+        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, scheduledFor: isScheduled ? scheduledFor : undefined })
       });
       if (res.ok) {
         setSuccessMsg(isScheduled ? ` Scheduled for ${new Date(scheduledFor).toLocaleString('en-GB')}` : ' Booking confirmed! Dispatched to nearby drivers.');
-        setDropoff(''); setGuestName(''); setGuestPhone(''); setNotes(''); setEstimate(null); setScheduledFor('');
+        setDropoff(''); setGuestName(''); setGuestPhone(''); setNotes(''); setEstimate(null); setScheduledFor(''); setPassengerCount(1);
         setTimeout(() => setSuccessMsg(''), 6000);
         fetchBookings();
       } else {
@@ -200,10 +200,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
-          {activeTab==='book'&&(
-            <div className="flex gap-6 max-w-5xl">
-              <div className="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+        {activeTab==='book' ? (
+          <div className="flex flex-1 overflow-hidden">
+            {/* Booking form - fixed width, independently scrollable */}
+            <div className="w-[420px] min-w-[420px] overflow-y-auto p-6 border-r border-gray-100 bg-[#F5F5F7]">
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <h2 className="text-base font-bold mb-1">New Booking</h2>
                 <p className="text-xs text-gray-400 mb-5">Book a taxi for your guest instantly or schedule ahead.</p>
                 {successMsg&&<div className="mb-4 bg-green-50 border border-green-200 text-green-800 rounded-xl px-4 py-3 text-sm font-medium">{successMsg}</div>}
@@ -257,7 +258,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                     </div>
                   ):(
                     <button type="button" onClick={handleEstimate} disabled={!dropoff||estimating} className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-all disabled:opacity-40">
-                      {estimating?'Calculating...':' Get price estimate first'}
+                      {estimating?'Calculating...':'🧮 Get price estimate first'}
                     </button>
                   )}
                   <button type="submit" disabled={loading||!dropoff} className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 transition-colors disabled:opacity-50">
@@ -265,24 +266,38 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                   </button>
                 </form>
               </div>
-              <div className="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-gray-50 flex justify-between items-center">
-                  <p className="text-xs font-bold text-gray-700">LIVE DRIVER MAP</p>
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/><span className="text-xs text-green-600 font-medium">Live</span></div>
-                </div>
-                <div className="relative flex-1 min-h-64">
-                  <LiveMap
-                    hotelLat={51.0704775}
-                    hotelLng={-1.8040052}
-                    height="280px"
-                    drivers={onlineDrivers}
-                  />
-                </div>
-                <div className="p-3 border-t border-gray-50"><p className="text-xs text-gray-400 text-center">Real-time driver locations</p></div>
-              </div>
             </div>
-          )}
 
+            {/* Map — fills all remaining space, full screen height */}
+            <div className="flex-1 flex flex-col overflow-hidden bg-gray-950">
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-800 flex-shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"/>
+                  <span className="text-xs font-bold text-white tracking-widest uppercase">Live Dispatch Map</span>
+                </div>
+                <div className="bg-gray-800 rounded-lg px-3 py-1 flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 uppercase tracking-wide">Drivers online</span>
+                  <span className="text-sm font-black text-white">{onlineDrivers.length}</span>
+                </div>
+              </div>
+              <div className="flex-1 relative">
+                <LiveMap hotelLat={51.0704775} hotelLng={-1.8040052} height="100%" drivers={onlineDrivers}/>
+              </div>
+              {onlineDrivers.length > 0 && (
+                <div className="flex-shrink-0 bg-gray-900 border-t border-gray-800 px-4 py-2.5 flex items-center gap-3 overflow-x-auto">
+                  {onlineDrivers.map((d:any) => (
+                    <div key={d.id} className="flex items-center gap-1.5 bg-gray-800 rounded-full px-3 py-1 flex-shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-black">{d.name?.[0]?.toUpperCase()}</div>
+                      <span className="text-xs text-gray-200 font-medium">{d.name?.split(' ')[0]}</span>
+                      <div className="w-1.5 h-1.5 bg-green-400 rounded-full"/>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-8">
           {activeTab==='active'&&(
             <div className="max-w-3xl space-y-3">
               <div className="flex justify-between items-center mb-2"><p className="text-sm text-gray-500">{activeBookings.length} active</p><button onClick={fetchBookings} className="text-xs text-blue-500 hover:text-blue-700">↻ Refresh</button></div>
@@ -361,7 +376,8 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
               </div>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );
