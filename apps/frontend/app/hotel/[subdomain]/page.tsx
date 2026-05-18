@@ -31,6 +31,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [passengerCount, setPassengerCount] = useState(1);
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState('');
   const [staffInfo, setStaffInfo] = useState({ name: 'Reception', hotel: 'Hotel' });
@@ -122,7 +123,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method:'POST',
         headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${token}`},
-        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, scheduledFor: isScheduled ? scheduledFor : undefined })
+        body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, passengerCount, distanceMiles: est.distanceMiles || 0, scheduledFor: isScheduled ? scheduledFor : undefined })
       });
       if (res.ok) {
         setSuccessMsg(isScheduled ? ` Scheduled for ${new Date(scheduledFor).toLocaleString('en-GB')}` : ' Booking confirmed! Dispatched to nearby drivers.');
@@ -225,9 +226,20 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Location</label>
                     <LocationInput value={dropoff} onChange={v=>{setDropoff(v);setEstimate(null);}} onSelect={(v,lat,lng)=>{setDropoff(v);setDropoffCoords({lat,lng});setEstimate(null);}} placeholder="Start typing destination..." dot="red" required/>
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
-                    <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={2} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-none" placeholder="Luggage, wheelchair, flight number..."/>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
+                      <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={2} className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10 resize-none" placeholder="Luggage, wheelchair, flight number..."/>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Passengers</label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <button type="button" onClick={()=>setPassengerCount(c=>Math.max(1,c-1))} className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors">−</button>
+                        <span className="flex-1 text-center text-xl font-bold">{passengerCount}</span>
+                        <button type="button" onClick={()=>setPassengerCount(c=>Math.min(8,c+1))} className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-lg font-bold hover:bg-gray-50 transition-colors">+</button>
+                      </div>
+                      <p className="text-[10px] text-gray-400 text-center mt-1">Max 8</p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 py-2 border-t border-gray-100">
                     <button type="button" onClick={()=>setIsScheduled(!isScheduled)} className={`relative w-10 h-5 rounded-full transition-colors ${isScheduled?'bg-black':'bg-gray-200'}`}>

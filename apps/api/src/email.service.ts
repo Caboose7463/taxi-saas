@@ -77,21 +77,46 @@ export class EmailService {
     console.log(`[EMAIL] Approval email sent to ${driverEmail}`);
   }
 
-  async driverNewBooking(driverEmail: string, driverName: string, pickup: string, dropoff: string, fare: number, guestName: string) {
+  async notifyDriver(driverEmail: string, driverName: string, pickup: string, dropoff: string, fare: number, passengers: number, miles: number, guestName: string) {
+    const payout = (fare * 0.90).toFixed(2);
     const html = `
-      <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px">
-        <h2 style="margin:0 0 20px;text-align:center">New Booking Request</h2>
-        <div style="background:#FFF9E6;border:1px solid #FCD34D;border-radius:16px;padding:16px;margin-bottom:16px">
-          <p style="margin:0;font-size:13px;color:#92400E;font-weight:600">⚡ Accept quickly — first driver wins!</p>
+      <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff">
+        <div style="text-align:center;margin-bottom:24px">
+          <div style="width:48px;height:48px;background:#000;border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center">
+            <span style="color:#fff;font-weight:bold;font-size:18px">C</span>
+          </div>
+          <h2 style="margin:0;font-size:22px;font-weight:700">New Job Available</h2>
+          <p style="margin:4px 0 0;color:#666;font-size:13px">Hi ${driverName} — accept quickly!</p>
         </div>
-        <div style="background:#F5F5F7;border-radius:16px;padding:20px">
-          ${guestName ? `<p style="margin:0 0 12px"><strong>Guest:</strong> ${guestName}</p>` : ''}
-          <p style="margin:0 0 8px"><strong>Pickup:</strong> ${pickup}</p>
-          <p style="margin:0 0 16px"><strong>Drop-off:</strong> ${dropoff}</p>
-          <p style="margin:0;font-size:24px;font-weight:700">Your payout: £${(fare*0.9).toFixed(2)}</p>
+        <div style="background:#F5F5F7;border-radius:16px;padding:20px;margin-bottom:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+            <div style="background:#fff;border-radius:10px;padding:12px;text-align:center">
+              <p style="margin:0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px">Passengers</p>
+              <p style="margin:4px 0 0;font-size:22px;font-weight:700">${passengers}</p>
+            </div>
+            <div style="background:#fff;border-radius:10px;padding:12px;text-align:center">
+              <p style="margin:0;font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px">Distance</p>
+              <p style="margin:4px 0 0;font-size:22px;font-weight:700">${miles?.toFixed(1)} mi</p>
+            </div>
+          </div>
+          ${guestName ? `<p style="margin:0 0 10px;font-size:13px"><strong>Guest:</strong> ${guestName}</p>` : ''}
+          <p style="margin:0 0 6px;font-size:13px"><strong>Pickup:</strong> ${pickup}</p>
+          <p style="margin:0;font-size:13px"><strong>Drop-off:</strong> ${dropoff}</p>
         </div>
-        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">Transit Pro · Driver Network</p>
+        <div style="background:#000;border-radius:16px;padding:20px;text-align:center;color:#fff;margin-bottom:20px">
+          <p style="margin:0 0 4px;font-size:12px;opacity:0.6">YOUR PAYOUT</p>
+          <p style="margin:0;font-size:32px;font-weight:700">£${payout}</p>
+          <p style="margin:4px 0 0;font-size:11px;opacity:0.5">Total fare: £${fare?.toFixed(2)}</p>
+        </div>
+        <div style="text-align:center">
+          <a href="${process.env.NEXT_PUBLIC_URL || 'https://frontend-kappa-gray-26.vercel.app'}/driver/dashboard"
+             style="background:#2563EB;color:#fff;text-decoration:none;padding:14px 32px;border-radius:12px;font-weight:700;font-size:14px;display:inline-block">
+            Open App to Accept
+          </a>
+        </div>
+        <p style="text-align:center;color:#999;font-size:11px;margin-top:20px">Caboose · Driver Network</p>
       </div>`;
-    await this.send(driverEmail, `New booking: ${pickup} → ${dropoff}`, html);
+    await this.send(driverEmail, `New job: ${pickup} → ${dropoff} · £${payout} payout`, html);
+    console.log(`[EMAIL] Job notification sent to driver ${driverEmail}`);
   }
 }

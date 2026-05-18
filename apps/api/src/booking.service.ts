@@ -146,15 +146,63 @@ export class BookingService {
   }
 
   async createBooking(data: Prisma.BookingUncheckedCreateInput) {
-    const booking = await this.prisma.booking.create({
-      data,
-    });
-    
-    // Broadcast the new booking instantly to all ONLINE drivers via WebSockets
+    const booking = await this.prisma.booking.create({ data });
+
+    // Broadcast to all ONLINE drivers via WebSockets with full details
     this.dispatchGateway.server.emit('new_booking_request', booking);
-    // Send email confirmation log
-    this.emailService.bookingConfirmed('Hotel', data.guestName as string || '', data.pickupAddress, data.dropoffAddress, data.fare);
+
+    // Notify all online drivers by email + SMS
+    this.notifyOnlineDrivers(booking).catch(() => {});
+
     return booking;
+  }
+
+  private async notifyOnlineDrivers(booking: any) {
+    const drivers = await this.prisma.driver.findMany({
+      where: { isOnline: true, isApproved: true },
+      select: { name: true, email: true, phone: true },
+    });
+
+    for (const driver of drivers) {
+      // Email notification
+      this.emailService.notifyDriver(
+        driver.email,
+        driver.name,
+        booking.pickupAddress,
+        booking.dropoffAddress,
+        booking.fare,
+        booking.passengerCount,
+        booking.distanceMiles,
+        booking.guestName,
+      ).catch(() => {});
+
+      // SMS notification via Twilio
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && driver.phone) {
+        this.sendSms(
+          driver.phone,
+          `New Caboose job: ${booking.passengerCount} pax, ${booking.distanceMiles?.toFixed(1)} miles\n` +
+          `From: ${booking.pickupAddress}\nTo: ${booking.dropoffAddress}\nFare: £${booking.fare?.toFixed(2)}\n` +
+          `Guest: ${booking.guestName || 'Walk-in'}\nOpen the app to accept.`
+        ).catch(() => {});
+      }
+    }
+  }
+
+  private async sendSms(to: string, body: string) {
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const from = process.env.TWILIO_PHONE_NUMBER;
+    if (!accountSid || !authToken || !from) return;
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+    const params = new URLSearchParams({ To: to, From: from, Body: body });
+    await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + Buffer.from(`${accountSid}:${authToken}`).toString('base64'),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: params.toString(),
+    });
   }
 
   async getActiveBookings() {

@@ -161,17 +161,28 @@ export default function DriverDashboard() {
             <div className="bg-white rounded-t-[32px] p-6 shadow-2xl">
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"/>
               <div className="flex justify-between items-center mb-4">
-                <div><p className="text-xs text-gray-400">ACTIVE JOB</p><p className="font-bold text-lg">{activeBooking.guestName||'Guest'}</p></div>
+                <div><p className="text-xs text-gray-400">ACTIVE JOB</p><p className="font-bold text-lg">{activeBooking.guestName||'Guest'}{activeBooking.guestPhone&&<span className="text-sm font-normal text-gray-400"> · {activeBooking.guestPhone}</span>}</p></div>
                 <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">{activeBooking.status?.replace('_',' ')}</span>
+              </div>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+                  <p className="text-[10px] text-gray-400">Passengers</p>
+                  <p className="text-xl font-black">{activeBooking.passengerCount||1}</p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+                  <p className="text-[10px] text-gray-400">Distance</p>
+                  <p className="text-xl font-black">{activeBooking.distanceMiles?.toFixed(1)||'?'}<span className="text-xs font-normal"> mi</span></p>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-2.5 text-center">
+                  <p className="text-[10px] text-gray-400">Payout</p>
+                  <p className="text-lg font-black">£{(activeBooking.driverPayout||activeBooking.fare*0.9).toFixed(2)}</p>
+                </div>
               </div>
               <div className="bg-gray-50 rounded-2xl p-4 space-y-2 mb-4">
                 <div className="flex items-start gap-2"><span className="text-green-500 text-xs mt-1">●</span><div><p className="text-xs text-gray-400">Pickup</p><p className="text-sm font-medium">{activeBooking.pickupAddress}</p></div></div>
                 <div className="flex items-start gap-2"><span className="text-red-500 text-xs mt-1">■</span><div><p className="text-xs text-gray-400">Drop-off</p><p className="text-sm font-medium">{activeBooking.dropoffAddress}</p></div></div>
-                {activeBooking.notes&&<p className="text-xs text-gray-400 italic">"{activeBooking.notes}"</p>}
-              </div>
-              <div className="flex justify-between items-center mb-4 px-1">
-                <div><p className="text-xs text-gray-400">YOUR PAYOUT (90%)</p><p className="text-3xl font-black">£{(activeBooking.driverPayout||activeBooking.fare*0.9).toFixed(2)}</p></div>
-                <div className="text-right"><p className="text-xs text-gray-400">Total fare</p><p className="text-lg font-bold text-gray-500">£{activeBooking.fare?.toFixed(2)}</p></div>
+                {activeBooking.notes&&<p className="text-xs text-gray-400 italic border-t border-gray-200 pt-2">📝 {activeBooking.notes}</p>}
               </div>
               {nextStatus&&(
                 <button onClick={()=>handleStatusUpdate(nextStatus)}
@@ -189,19 +200,32 @@ export default function DriverDashboard() {
           <div className="bg-white rounded-t-[32px] p-6 shadow-2xl">
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4"/>
             <div className="flex justify-between items-center mb-4">
-              <p className="font-bold text-lg">New Booking!</p>
+              <p className="font-bold text-lg">New Job!</p>
               <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-bold animate-pulse">⏱ Accept quickly</span>
             </div>
-            <div className="bg-gray-50 rounded-2xl p-4 space-y-2 mb-4">
-              {incomingBooking?.guestName&&<p className="text-sm font-medium text-gray-700">👤 {incomingBooking.guestName}</p>}
-              <div className="flex items-start gap-2"><span className="text-green-500 text-xs mt-1">●</span><p className="text-sm">{incomingBooking?.pickupAddress}</p></div>
-              <div className="flex items-start gap-2"><span className="text-red-500 text-xs mt-1">■</span><p className="text-sm">{incomingBooking?.dropoffAddress}</p></div>
-              {incomingBooking?.notes&&<p className="text-xs text-gray-400 italic">"{incomingBooking.notes}"</p>}
+            {/* Key stats row */}
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              <div className="bg-gray-50 rounded-2xl p-3 text-center">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Passengers</p>
+                <p className="text-2xl font-black">{incomingBooking?.passengerCount||1}</p>
+              </div>
+              <div className="bg-gray-50 rounded-2xl p-3 text-center">
+                <p className="text-[10px] text-gray-400 uppercase tracking-wide">Distance</p>
+                <p className="text-2xl font-black">{incomingBooking?.distanceMiles?.toFixed(1)||'?'}<span className="text-sm font-normal"> mi</span></p>
+              </div>
+              <div className="bg-black rounded-2xl p-3 text-center">
+                <p className="text-[10px] text-white/60 uppercase tracking-wide">Payout</p>
+                <p className="text-xl font-black text-white">£{incomingBooking?(incomingBooking.driverPayout||incomingBooking.fare*0.9).toFixed(2):'0.00'}</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center mb-5 px-1">
-              <div><p className="text-xs text-gray-400">YOUR PAYOUT (90%)</p><p className="text-3xl font-black">£{incomingBooking?(incomingBooking.driverPayout||incomingBooking.fare*0.9).toFixed(2):'0.00'}</p></div>
+            {/* Route */}
+            <div className="bg-gray-50 rounded-2xl p-4 space-y-3 mb-4">
+              {incomingBooking?.guestName&&<p className="text-sm font-semibold text-gray-700">👤 {incomingBooking.guestName}{incomingBooking.guestPhone&&<span className="text-gray-400 font-normal"> · {incomingBooking.guestPhone}</span>}</p>}
+              <div className="flex items-start gap-2"><span className="text-green-500 mt-1">●</span><div><p className="text-[10px] text-gray-400">PICKUP</p><p className="text-sm font-medium">{incomingBooking?.pickupAddress}</p></div></div>
+              <div className="flex items-start gap-2"><span className="text-red-500 mt-1">■</span><div><p className="text-[10px] text-gray-400">DROP-OFF</p><p className="text-sm font-medium">{incomingBooking?.dropoffAddress}</p></div></div>
+              {incomingBooking?.notes&&<p className="text-xs text-gray-400 italic border-t border-gray-200 pt-2">📝 {incomingBooking.notes}</p>}
             </div>
-            <button onClick={handleAccept} className="w-full py-4 bg-black text-white rounded-2xl font-bold text-sm mb-2">✓ Accept Booking</button>
+            <button onClick={handleAccept} className="w-full py-4 bg-black text-white rounded-2xl font-bold text-sm mb-2">✓ Accept Job</button>
             <button onClick={()=>setIncomingBooking(null)} className="w-full text-gray-400 text-sm py-2 hover:text-gray-600">Decline</button>
           </div>
         </div>

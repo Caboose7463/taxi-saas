@@ -78,6 +78,8 @@ model Booking {
   fare            Float
   hotelCommission Float
   driverPayout    Float     @default(0)
+  passengerCount  Int       @default(1)
+  distanceMiles   Float     @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   driver          Driver?   @relation(fields: [driverId], references: [id])
