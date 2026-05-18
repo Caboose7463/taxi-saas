@@ -67,6 +67,17 @@ export class BookingController {
     return this.bookingService.getHotelBookings(hotelId);
   }
 
+
+  @Patch(':id/cancel')
+  async cancelBooking(@Param('id') id: string) {
+    return this.bookingService.cancelBooking(id);
+  }
+
+  @Patch(':id/status')
+  async updateStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.bookingService.updateBookingStatus(id, status);
+  }
+
   @Patch(':id/accept')
   async acceptBooking(
     @Param('id') id: string,

@@ -136,6 +136,20 @@ export class BookingService {
     });
   }
 
+
+  async cancelBooking(bookingId: string) {
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  async updateBookingStatus(bookingId: string, status: string) {
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status },
+    });
+  }
   async acceptBooking(bookingId: string, driverId: string) {
     return this.prisma.booking.update({
       where: { id: bookingId },
