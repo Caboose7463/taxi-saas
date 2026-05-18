@@ -22,8 +22,8 @@ export class BookingController {
   }
 
   @Post('estimate')
-  async estimateFare(@Body() body: { pickup: string; dropoff: string }) {
-    return this.bookingService.estimateFare(body.pickup, body.dropoff);
+  async estimateFare(@Body() body: { pickup: string; dropoff: string; pickupLat?: number; pickupLng?: number; dropoffLat?: number; dropoffLng?: number }) {
+    return this.bookingService.estimateFare(body.pickup, body.dropoff, body.pickupLat, body.pickupLng, body.dropoffLat, body.dropoffLng);
   }
 
   @Post()

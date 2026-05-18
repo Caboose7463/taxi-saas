@@ -45,11 +45,28 @@ export class BookingService {
     return null;
   }
 
-  async estimateFare(pickup: string, dropoff: string) {
+  async estimateFare(pickup: string, dropoff: string, pickupLat?: number, pickupLng?: number, dropoffLat?: number, dropoffLng?: number) {
     const BASE_FARE = 3.50;
     const RATE_PER_MILE = 2.50;
     const MINIMUM_FARE = 8.00;
     const HOTEL_COMMISSION = 0.025;
+
+    // If frontend already has coordinates (from Nominatim autocomplete), use them directly
+    if (pickupLat && pickupLng && dropoffLat && dropoffLng) {
+      const straightLineMiles = this.haversineDistance(pickupLat, pickupLng, dropoffLat, dropoffLng);
+      const estimatedRoadMiles = Math.round(straightLineMiles * 1.30 * 10) / 10;
+      const fare = Math.max(MINIMUM_FARE, BASE_FARE + (estimatedRoadMiles * RATE_PER_MILE));
+      const etaMinutes = Math.round(estimatedRoadMiles * 2.0);
+      return {
+        distanceMiles: estimatedRoadMiles,
+        distance: `${estimatedRoadMiles} miles`,
+        fare: Math.round(fare * 100) / 100,
+        hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
+        driverPayout: Math.round(fare * 0.90 * 100) / 100,
+        platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
+        etaMinutes,
+      };
+    }
 
     // First try Google Maps if key is set
     if (process.env.GOOGLE_MAPS_API_KEY) {

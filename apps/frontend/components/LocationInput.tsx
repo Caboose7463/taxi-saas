@@ -6,13 +6,14 @@ interface Result { display_name: string; lat: string; lon: string; }
 interface Props {
   value: string;
   onChange: (val: string) => void;
+  onSelect?: (val: string, lat: number, lng: number) => void;
   placeholder?: string;
   dot?: 'green' | 'red';
   required?: boolean;
   readOnly?: boolean;
 }
 
-export default function LocationInput({ value, onChange, placeholder = 'Start typing any address...', dot, required, readOnly }: Props) {
+export default function LocationInput({ value, onChange, onSelect, placeholder = 'Start typing any address...', dot, required, readOnly }: Props) {
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,8 +50,9 @@ export default function LocationInput({ value, onChange, placeholder = 'Start ty
   };
 
   const select = (r: Result) => {
-    // Store a clean address string
-    onChange(r.display_name.split(',').slice(0, 4).join(',').trim());
+    const clean = r.display_name.split(',').slice(0, 4).join(',').trim();
+    onChange(clean);
+    if (onSelect) onSelect(clean, parseFloat(r.lat), parseFloat(r.lon));
     setOpen(false);
   };
 

@@ -22,6 +22,8 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [driverPos, setDriverPos] = useState({ x: 35, y: 55 });
   const [driver2Pos, setDriver2Pos] = useState({ x: 65, y: 40 });
   const [estimate, setEstimate] = useState<any>(null);
+  const [pickupCoords, setPickupCoords] = useState<{lat:number;lng:number}|null>(null);
+  const [dropoffCoords, setDropoffCoords] = useState<{lat:number;lng:number}|null>(null);
   const [estimating, setEstimating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [pickup, setPickup] = useState('');
@@ -189,11 +191,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pickup Location</label>
-                    <LocationInput value={pickup} onChange={v=>{setPickup(v);setEstimate(null);}} placeholder="Pickup address..." dot="green" required/>
+                    <LocationInput value={pickup} onChange={v=>{setPickup(v);setEstimate(null);}} onSelect={(v,lat,lng)=>{setPickup(v);setPickupCoords({lat,lng});setEstimate(null);}} placeholder="Pickup address..." dot="green" required/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Location</label>
-                    <LocationInput value={dropoff} onChange={v=>{setDropoff(v);setEstimate(null);}} placeholder="Start typing destination..." dot="red" required/>
+                    <LocationInput value={dropoff} onChange={v=>{setDropoff(v);setEstimate(null);}} onSelect={(v,lat,lng)=>{setDropoff(v);setDropoffCoords({lat,lng});setEstimate(null);}} placeholder="Start typing destination..." dot="red" required/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
