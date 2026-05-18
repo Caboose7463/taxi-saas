@@ -42,6 +42,7 @@ export class BookingService {
           const distanceMiles = element.distance.value / 1609.34;
           const rawFare = BASE_FARE + (distanceMiles * PER_MILE);
           const fare = Math.max(MIN_FARE, rawFare);
+          const etaMinutes = Math.round((element.duration.value / 60) * 1.2); // add 20% for pickup travel
           return {
             distanceMiles: Math.round(distanceMiles * 10) / 10,
             distance: `${Math.round(distanceMiles)} miles`,
@@ -49,6 +50,7 @@ export class BookingService {
             hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
             driverPayout: Math.round(fare * 0.90 * 100) / 100,
             platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
+            etaMinutes,
           };
         }
       } catch (error) {
@@ -101,6 +103,7 @@ export class BookingService {
     const rawFare = BASE_FARE + (estimatedMiles * PER_MILE);
     const fare = Math.max(MIN_FARE, rawFare);
 
+    const etaMinutes = Math.round(estimatedMiles * 2.5 + 5); // rough ETA: 2.5 min/mile + 5 min pickup
     return {
       distanceMiles: estimatedMiles,
       distance: `~${estimatedMiles} miles (estimate)`,
@@ -108,6 +111,7 @@ export class BookingService {
       hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
       driverPayout: Math.round(fare * 0.90 * 100) / 100,
       platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
+      etaMinutes,
     };
   }
 
@@ -198,6 +202,34 @@ export class BookingService {
 
   async updateHotelBranding(hotelId: string, data: { brand_color?: string; logo_url?: string; welcome_text?: string; address?: string }) {
     return this.prisma.hotel.update({ where: { id: hotelId }, data });
+  }
+
+
+  async getDriverBookings(driverId: string) {
+    return this.prisma.booking.findMany({
+      where: { driverId },
+      orderBy: { createdAt: 'desc' },
+      include: { hotel: { select: { name:true, address:true } } }
+    });
+  }
+
+  async getHotelStaff(hotelId: string) {
+    return this.prisma.hotelStaff.findMany({
+      where: { hotelId },
+      select: { id:true, name:true, email:true, createdAt:true }
+    });
+  }
+
+  async addHotelStaff(hotelId: string, name: string, email: string, password: string) {
+    const bcrypt = require('bcrypt');
+    const hashed = await bcrypt.hash(password, 10);
+    return this.prisma.hotelStaff.create({
+      data: { hotelId, name, email, password: hashed }
+    });
+  }
+
+  async removeHotelStaff(staffId: string) {
+    return this.prisma.hotelStaff.delete({ where: { id: staffId } });
   }
 
 }

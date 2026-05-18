@@ -128,7 +128,8 @@ export default function HotelDashboard() {
           ))}
         </nav>
         <div className="border-t border-gray-100 pt-4">
-          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium">⚙️ Hotel Settings</a>
+          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-1 font-medium">⚙️ Hotel Settings</a>
+          <a href="staff" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium">👤 Manage Staff</a>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{staffInfo.name[0]}</div>
             <div><p className="text-xs font-semibold text-gray-900">{staffInfo.name}</p><p className="text-[10px] text-gray-400">{staffInfo.hotel}</p></div>
@@ -200,7 +201,7 @@ export default function HotelDashboard() {
                   {estimate?(
                     <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
                       <div className="flex justify-between items-center">
-                        <div><p className="text-xs text-gray-500">Estimated Fare</p><p className="text-2xl font-bold text-gray-900">£{estimate.fare?.toFixed(2)}</p><p className="text-xs text-gray-400">{estimate.distance} · Hotel earns £{estimate.hotelCommission?.toFixed(2)} · Driver gets £{estimate.driverPayout?.toFixed(2)}</p></div>
+                        <div><p className="text-xs text-gray-500">Estimated Fare</p><p className="text-2xl font-bold text-gray-900">£{estimate.fare?.toFixed(2)}</p><p className="text-xs text-gray-400">{estimate.distance} · ETA ~{estimate.etaMinutes||8} min · Hotel earns £{estimate.hotelCommission?.toFixed(2)}</p></div>
                         <div><p className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-lg font-medium">£3.50 + £2.50/mi</p></div>
                       </div>
                     </div>

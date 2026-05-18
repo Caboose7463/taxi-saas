@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Param, Patch, Headers, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, Patch, Delete, Headers, UnauthorizedException } from '@nestjs/common';
 import { BookingService } from './booking.service';
 import { JwtService } from '@nestjs/jwt';
 
@@ -125,6 +125,32 @@ export class BookingController {
   async updateBranding(@Headers('authorization') auth: string, @Body() body: { brand_color?: string; logo_url?: string; welcome_text?: string; address?: string }) {
     const hotelId = this.extractHotelId(auth);
     return this.bookingService.updateHotelBranding(hotelId, body);
+  }
+
+
+  @Get('driver/diary')
+  async getDriverDiary(@Headers('authorization') auth: string) {
+    const token = auth?.replace('Bearer ', '');
+    let driverId = '';
+    try { const p = this.jwtService.verify(token) as any; driverId = p.sub; } catch { throw new UnauthorizedException('Invalid token'); }
+    return this.bookingService.getDriverBookings(driverId);
+  }
+
+  @Get('hotel/staff')
+  async getHotelStaff(@Headers('authorization') auth: string) {
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.getHotelStaff(hotelId);
+  }
+
+  @Post('hotel/staff')
+  async addHotelStaff(@Headers('authorization') auth: string, @Body() body: { name: string; email: string; password: string }) {
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.addHotelStaff(hotelId, body.name, body.email, body.password);
+  }
+
+  @Delete('hotel/staff/:id')
+  async removeHotelStaff(@Param('id') id: string) {
+    return this.bookingService.removeHotelStaff(id);
   }
 
 }
