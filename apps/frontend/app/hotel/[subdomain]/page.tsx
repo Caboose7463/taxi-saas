@@ -3,6 +3,7 @@ import { API_URL } from '@/lib/api';
 import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { io } from 'socket.io-client';
 import dynamic from 'next/dynamic';
+import LocationInput from '@/components/LocationInput';
 
 const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false, loading: () => <div className="flex-1 min-h-64 bg-slate-100 rounded-2xl flex items-center justify-center"><div className="text-gray-400 text-sm">Loading map...</div></div> });
 
@@ -38,6 +39,20 @@ export default function HotelDashboard() {
       setDriverPos(p => ({ x: Math.min(85,Math.max(15,p.x+(Math.random()-0.48)*3)), y: Math.min(85,Math.max(15,p.y+(Math.random()-0.48)*3)) }));
       setDriver2Pos(p => ({ x: Math.min(85,Math.max(15,p.x+(Math.random()-0.52)*3)), y: Math.min(85,Math.max(15,p.y+(Math.random()-0.52)*3)) }));
     }, 2000);
+    // Always fetch fresh hotel profile from API so name/address are current
+    const token = document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
+    if (token) {
+      fetch(`${API_URL}/api/v1/bookings/hotel/profile`, {
+        headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' }
+      }).then(r=>r.ok?r.json():null).then(hotel => {
+        if (hotel) {
+          setStaffInfo(s => ({ ...s, hotel: hotel.name }));
+          if (hotel.address) setPickup(hotel.address);
+          // Update localStorage with fresh data
+          try { const saved = localStorage.getItem('staffInfo'); if(saved){ const info=JSON.parse(saved); info.hotel=hotel.name; info.hotelAddress=hotel.address; localStorage.setItem('staffInfo',JSON.stringify(info)); } } catch {}
+        }
+      }).catch(()=>{});
+    }
     try {
       const saved = localStorage.getItem('staffInfo');
       if (saved) { const info = JSON.parse(saved); setStaffInfo(info); if (info.hotelAddress) setPickup(info.hotelAddress); }
@@ -84,7 +99,7 @@ export default function HotelDashboard() {
         body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, scheduledFor: isScheduled ? scheduledFor : undefined })
       });
       if (res.ok) {
-        setSuccessMsg(isScheduled ? `✅ Scheduled for ${new Date(scheduledFor).toLocaleString('en-GB')}` : '✅ Booking confirmed! Dispatched to nearby drivers.');
+        setSuccessMsg(isScheduled ? ` Scheduled for ${new Date(scheduledFor).toLocaleString('en-GB')}` : ' Booking confirmed! Dispatched to nearby drivers.');
         setDropoff(''); setGuestName(''); setGuestPhone(''); setNotes(''); setEstimate(null); setScheduledFor('');
         setTimeout(() => setSuccessMsg(''), 6000);
         fetchBookings();
@@ -119,23 +134,23 @@ export default function HotelDashboard() {
           <span className="font-bold text-sm text-gray-900">TRANSIT PRO</span>
         </div>
         <nav className="flex flex-col gap-1 flex-1">
-          {([['book','🚖','Book a Taxi'],['active','📍','Active Bookings'],['history','📋','History'],['analytics','📊','Analytics']] as const).map(([id,icon,label])=>(
+          {([['book','Book a Taxi'],['active','Active Bookings'],['history','History'],['analytics','Analytics']] as const).map(([id,label])=>(
             <button key={id} onClick={()=>setActiveTab(id)}
               className={`px-3 py-2.5 rounded-xl text-left flex items-center gap-2.5 text-sm font-medium transition-all ${activeTab===id?'bg-black text-white':'text-gray-600 hover:bg-gray-50'}`}>
-              <span>{icon}</span>{label}
+              {label}
               {id==='active'&&activeBookings.length>0&&<span className="ml-auto bg-blue-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{activeBookings.length}</span>}
             </button>
           ))}
         </nav>
         <div className="border-t border-gray-100 pt-4">
-          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-1 font-medium">⚙️ Hotel Settings</a>
-          <a href="staff" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium">👤 Manage Staff</a>
+          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-1 font-medium">️ Hotel Settings</a>
+          <a href="staff" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium"> Manage Staff</a>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{staffInfo.name[0]}</div>
             <div><p className="text-xs font-semibold text-gray-900">{staffInfo.name}</p><p className="text-[10px] text-gray-400">{staffInfo.hotel}</p></div>
           </div>
           <button onClick={()=>{document.cookie='token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';localStorage.removeItem('staffInfo');window.location.href='/login';}}
-            className="w-full text-xs text-gray-400 hover:text-red-500 text-left transition-colors">Sign out →</button>
+            className="w-full text-xs text-gray-400 hover:text-red-500 text-left transition-colors">Sign out </button>
         </div>
       </aside>
 
@@ -177,15 +192,11 @@ export default function HotelDashboard() {
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Pickup Location</label>
-                    <div className="relative"><span className="absolute left-3 top-3 text-green-500 text-xs">●</span>
-                      <input value={pickup} onChange={e=>{setPickup(e.target.value);setEstimate(null);}} className="w-full pl-7 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10" placeholder="Pickup address..." required/>
-                    </div>
+                    <LocationInput value={pickup} onChange={v=>{setPickup(v);setEstimate(null);}} placeholder="Pickup address..." dot="green" required/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Drop-off Location</label>
-                    <div className="relative"><span className="absolute left-3 top-3 text-red-500 text-xs">■</span>
-                      <input value={dropoff} onChange={e=>{setDropoff(e.target.value);setEstimate(null);}} className="w-full pl-7 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10 shadow-sm" placeholder="Destination (e.g. Heathrow T2)" required/>
-                    </div>
+                    <LocationInput value={dropoff} onChange={v=>{setDropoff(v);setEstimate(null);}} placeholder="Start typing destination..." dot="red" required/>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">Notes</label>
@@ -207,7 +218,7 @@ export default function HotelDashboard() {
                     </div>
                   ):(
                     <button type="button" onClick={handleEstimate} disabled={!dropoff||estimating} className="w-full py-2.5 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-all disabled:opacity-40">
-                      {estimating?'Calculating...':'→ Get price estimate first'}
+                      {estimating?'Calculating...':' Get price estimate first'}
                     </button>
                   )}
                   <button type="submit" disabled={loading||!dropoff} className="w-full py-3.5 bg-black text-white rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 transition-colors disabled:opacity-50">
@@ -239,7 +250,7 @@ export default function HotelDashboard() {
             <div className="max-w-3xl space-y-3">
               <div className="flex justify-between items-center mb-2"><p className="text-sm text-gray-500">{activeBookings.length} active</p><button onClick={fetchBookings} className="text-xs text-blue-500 hover:text-blue-700">↻ Refresh</button></div>
               {bookingsLoading?<div className="text-center py-16 text-gray-400 text-sm">Loading...</div>:
-              activeBookings.length===0?<div className="text-center py-16"><p className="text-4xl mb-3">🚖</p><p className="text-gray-500 font-medium">No active bookings</p><button onClick={()=>setActiveTab('book')} className="mt-4 px-4 py-2 bg-black text-white text-sm rounded-xl font-medium">Book Now →</button></div>:
+              activeBookings.length===0?<div className="text-center py-16"><p className="text-4xl mb-3"></p><p className="text-gray-500 font-medium">No active bookings</p><button onClick={()=>setActiveTab('book')} className="mt-4 px-4 py-2 bg-black text-white text-sm rounded-xl font-medium">Book Now </button></div>:
               activeBookings.map(b=>(
                 <div key={b.id} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
                   <div className="flex justify-between items-start mb-3">
@@ -264,7 +275,7 @@ export default function HotelDashboard() {
             <div className="max-w-3xl space-y-3">
               <div className="flex justify-between items-center mb-2"><p className="text-sm text-gray-500">{historyBookings.length} trips</p><button onClick={fetchBookings} className="text-xs text-blue-500 hover:text-blue-700">↻ Refresh</button></div>
               {bookingsLoading?<div className="text-center py-16 text-gray-400 text-sm">Loading...</div>:
-              historyBookings.length===0?<div className="text-center py-16"><p className="text-4xl mb-3">📋</p><p className="text-gray-500">No history yet</p></div>:
+              historyBookings.length===0?<div className="text-center py-16"><p className="text-4xl mb-3"></p><p className="text-gray-500">No history yet</p></div>:
               historyBookings.map(b=>(
                 <div key={b.id} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm opacity-85">
                   <div className="flex justify-between items-start mb-3">
@@ -284,7 +295,7 @@ export default function HotelDashboard() {
           {activeTab==='analytics'&&(
             <div className="max-w-3xl space-y-4">
               <div className="grid grid-cols-3 gap-4">
-                {[{label:'Total Bookings',value:bookings.length,icon:'📦',color:'blue'},{label:'Completed',value:totalTrips,icon:'✅',color:'green'},{label:'Commission Earned',value:`£${totalCommission.toFixed(2)}`,icon:'💰',color:'purple'}].map((s,i)=>(
+                {[{label:'Total Bookings',value:bookings.length,icon:'',color:'blue'},{label:'Completed',value:totalTrips,icon:'',color:'green'},{label:'Commission Earned',value:`£${totalCommission.toFixed(2)}`,icon:'',color:'purple'}].map((s,i)=>(
                   <div key={i} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm text-center">
                     <p className="text-2xl mb-2">{s.icon}</p>
                     <p className="text-2xl font-bold text-gray-900">{s.value}</p>
