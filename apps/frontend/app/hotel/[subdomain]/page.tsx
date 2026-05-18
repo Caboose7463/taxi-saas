@@ -233,17 +233,15 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                   <p className="text-xs font-bold text-gray-700">LIVE DRIVER MAP</p>
                   <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/><span className="text-xs text-green-600 font-medium">Live</span></div>
                 </div>
-                <div className="relative flex-1 min-h-64 bg-slate-100">
-                  <div className="absolute inset-0" style={{backgroundImage:'linear-gradient(rgba(0,0,0,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.04) 1px,transparent 1px)',backgroundSize:'30px 30px'}}/>
-                  <div className="absolute inset-0"><div className="absolute bg-white h-1.5 w-full opacity-90" style={{top:'40%'}}/><div className="absolute bg-white w-1.5 h-full opacity-90" style={{left:'35%'}}/><div className="absolute bg-white h-1 w-full opacity-70" style={{top:'70%'}}/><div className="absolute bg-white w-1 h-full opacity-70" style={{left:'65%'}}/></div>
-                  <div className="absolute z-20 transform -translate-x-1/2 -translate-y-1/2" style={{left:'50%',top:'50%'}}><div className="w-9 h-9 bg-black rounded-full text-white flex items-center justify-center font-bold text-sm border-2 border-white shadow-lg">H</div></div>
-                  {[{pos:driverPos,color:'bg-blue-500',n:1},{pos:driver2Pos,color:'bg-purple-500',n:2},{pos:{x:75,y:25},color:'bg-orange-500',n:3},{pos:{x:20,y:80},color:'bg-teal-500',n:4}].map(({pos,color,n})=>(
-                    <div key={n} className="absolute z-10 transform -translate-x-1/2 -translate-y-1/2 transition-all duration-[2000ms]" style={{left:`${pos.x}%`,top:`${pos.y}%`}}>
-                      <div className={`w-7 h-7 ${color} rounded-full text-white flex items-center justify-center text-xs font-bold shadow-md border-2 border-white`}>{n}</div>
-                    </div>
-                  ))}
+                <div className="relative flex-1 min-h-64">
+                  <LiveMap
+                    hotelLat={51.0704775}
+                    hotelLng={-1.8040052}
+                    height="280px"
+                    drivers={[]}
+                  />
                 </div>
-                <div className="p-3 border-t border-gray-50"><p className="text-xs text-gray-400 text-center">Nearest driver ~3 mins away</p></div>
+                <div className="p-3 border-t border-gray-50"><p className="text-xs text-gray-400 text-center">Real-time driver locations</p></div>
               </div>
             </div>
           )}
