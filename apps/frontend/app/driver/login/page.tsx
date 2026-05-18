@@ -36,7 +36,7 @@ export default function DriverLogin() {
       <div className="w-full max-w-sm bg-white rounded-3xl shadow-sm p-8 border border-gray-100">
         <div className="text-center mb-8">
           <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white text-xl">🚖</span>
+            <span className="text-white font-bold text-lg">D</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Driver Portal</h1>
           <p className="text-sm text-gray-400 mt-1.5">Log in to go online and accept rides</p>

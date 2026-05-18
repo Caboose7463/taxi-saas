@@ -281,4 +281,12 @@ export class BookingService {
     });
   }
 
+
+  async getDriverProfile(driverId: string) {
+    return this.prisma.driver.findUnique({
+      where: { id: driverId },
+      select: { id:true, name:true, email:true, phone:true, isApproved:true, isOnline:true, vehicleMake:true, vehicleModel:true, vehicleReg:true }
+    });
+  }
+
 }

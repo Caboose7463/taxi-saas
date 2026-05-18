@@ -17,13 +17,55 @@ export default function DriverDashboard() {
 
   const getToken = () => document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
 
+  const [isApproved, setIsApproved] = useState<boolean|null>(null);
+
   useEffect(() => {
-    try { const t=getToken(); if(t){const p=JSON.parse(atob(t.split('.')[1]));if(p.name)setDriverName(p.name);} } catch {}
+    try {
+      const info = localStorage.getItem('driverInfo');
+      if (info) { const d=JSON.parse(info); if(d.name)setDriverName(d.name); }
+      const t=getToken();
+      if(t){const p=JSON.parse(atob(t.split('.')[1]));if(p.name)setDriverName(p.name);}
+    } catch {}
+
+    // Check approval status
+    const token = getToken();
+    if (token) {
+      fetch(`${API_URL}/api/v1/bookings/driver/profile`, {
+        headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' }
+      }).then(r=>r.ok?r.json():null).then(d=>{
+        if(d) { setIsApproved(d.isApproved); if(d.name) setDriverName(d.name); }
+        else setIsApproved(false);
+      }).catch(()=>setIsApproved(false));
+    } else {
+      setIsApproved(false);
+    }
+
     const s = io(API_URL, { transports:['websocket','polling'] });
     setSocket(s);
     s.on('new_booking_request', (data:any) => { if(!activeBooking) setIncomingBooking(data); });
     return () => { s.close(); };
   }, []);
+
+  // Show pending screen if not approved
+  if (isApproved === false) return (
+    <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
+      <div className="bg-white rounded-3xl p-10 max-w-sm w-full text-center shadow-sm border border-gray-100">
+        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
+          <svg width="28" height="28" fill="none" stroke="#d97706" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <h2 className="text-xl font-bold mb-2">Application Pending</h2>
+        <p className="text-gray-500 text-sm mb-2">Your application is under review by the admin team.</p>
+        <p className="text-gray-400 text-xs mb-8">You will be notified once approved. This usually takes up to 24 hours.</p>
+        <a href="/driver/login" className="block text-xs text-gray-400 hover:text-gray-600">Wrong account? Sign in again</a>
+      </div>
+    </div>
+  );
+
+  if (isApproved === null) return (
+    <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin"/>
+    </div>
+  );
 
   const handleAccept = async () => {
     if (!incomingBooking) return;

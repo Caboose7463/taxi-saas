@@ -167,4 +167,13 @@ export class BookingController {
     return this.bookingService.getOnlineDrivers();
   }
 
+
+  @Get('driver/profile')
+  async getDriverProfile(@Headers('authorization') auth: string) {
+    const token = auth?.replace('Bearer ', '');
+    let driverId = '';
+    try { const p = this.jwtService.verify(token) as any; driverId = p.sub; } catch { throw new UnauthorizedException('Invalid token'); }
+    return this.bookingService.getDriverProfile(driverId);
+  }
+
 }

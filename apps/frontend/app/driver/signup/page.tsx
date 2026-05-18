@@ -49,12 +49,16 @@ export default function DriverSignup() {
   const inp = "w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-black/10 transition-all";
 
   if (step==='done') return (
-    <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-6" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
       <div className="bg-white rounded-3xl p-10 max-w-md w-full text-center shadow-sm border border-gray-100">
-        <div className="text-5xl mb-4">✅</div>
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+          <svg width="32" height="32" fill="none" stroke="#16a34a" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+        </div>
         <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
-        <p className="text-gray-500 text-sm mb-6">Your application is under review. You'll receive an email once approved — usually within 24 hours.</p>
-        <a href="/driver/login" className="block w-full bg-black text-white py-3 rounded-xl font-bold text-sm text-center">Go to Driver Login</a>
+        <p className="text-gray-500 text-sm mb-2">Your application is pending admin review.</p>
+        <p className="text-gray-400 text-xs mb-8">You will be notified once approved. Then log in to the driver portal to go online and accept bookings.</p>
+        <a href="/driver/login" className="block w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm text-center mb-3">Go to Driver Login</a>
+        <a href="/" className="block text-xs text-gray-400 hover:text-gray-600">Back to home</a>
       </div>
     </div>
   );
