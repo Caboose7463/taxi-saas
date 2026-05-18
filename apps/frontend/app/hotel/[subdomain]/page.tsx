@@ -22,11 +22,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [driverPos, setDriverPos] = useState({ x: 35, y: 55 });
   const [driver2Pos, setDriver2Pos] = useState({ x: 65, y: 40 });
   const [estimate, setEstimate] = useState<any>(null);
-  const [pickupCoords, setPickupCoords] = useState<{lat:number;lng:number}|null>(null);
+  const [pickupCoords, setPickupCoords] = useState<{lat:number;lng:number}|null>({lat:51.0704775,lng:-1.8040052});
   const [dropoffCoords, setDropoffCoords] = useState<{lat:number;lng:number}|null>(null);
   const [estimating, setEstimating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-  const [pickup, setPickup] = useState('');
+  const [pickup, setPickup] = useState('115 South Western Road, Salisbury, SP1 7RR');
   const [dropoff, setDropoff] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestPhone, setGuestPhone] = useState('');
@@ -46,7 +46,10 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
       }).then(r=>r.ok?r.json():null).then(hotel => {
         if (hotel) {
           setStaffInfo(s => ({ ...s, hotel: hotel.name }));
-          if (hotel.address) setPickup(hotel.address);
+          if (hotel.address) {
+            setPickup(hotel.address);
+            // Keep default Caboose coords unless hotel has different address
+          }
           // Update localStorage with fresh data
           try { const saved = localStorage.getItem('staffInfo'); if(saved){ const info=JSON.parse(saved); info.hotel=hotel.name; info.hotelAddress=hotel.address; localStorage.setItem('staffInfo',JSON.stringify(info)); } } catch {}
         }
