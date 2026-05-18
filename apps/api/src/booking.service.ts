@@ -146,7 +146,9 @@ export class BookingService {
   }
 
   async createBooking(data: Prisma.BookingUncheckedCreateInput) {
-    const booking = await this.prisma.booking.create({ data });
+    // Generate a unique tracking token for this booking
+    const trackingToken = require('crypto').randomBytes(12).toString('hex');
+    const booking = await this.prisma.booking.create({ data: { ...data, trackingToken } });
 
     // Broadcast to all ONLINE drivers via WebSockets with full details
     this.dispatchGateway.server.emit('new_booking_request', booking);
@@ -235,11 +237,34 @@ export class BookingService {
     });
   }
   async acceptBooking(bookingId: string, driverId: string) {
-    return this.prisma.booking.update({
+    const booking = await this.prisma.booking.update({
       where: { id: bookingId },
-      data: {
-        driverId,
-        status: 'ACCEPTED',
+      data: { driverId, status: 'ACCEPTED' },
+      include: { driver: true },
+    });
+
+    // SMS the guest their live tracking link
+    if (booking.guestPhone && process.env.TWILIO_ACCOUNT_SID) {
+      const trackingUrl = `${process.env.FRONTEND_URL || 'https://frontend-kappa-gray-26.vercel.app'}/track/${booking.trackingToken}`;
+      const driverName = booking.driver?.name?.split(' ')[0] || 'Your driver';
+      const vehicle = [booking.driver?.vehicleColour, booking.driver?.vehicleMake, booking.driver?.vehicleModel].filter(Boolean).join(' ') || 'taxi';
+      this.sendSms(
+        booking.guestPhone,
+        `🚖 Your Caboose taxi is confirmed!\n` +
+        `Driver: ${driverName} · ${vehicle}\n` +
+        `Track live: ${trackingUrl}`
+      ).catch(() => {});
+    }
+
+    return booking;
+  }
+
+  async getBookingByToken(token: string) {
+    return this.prisma.booking.findUnique({
+      where: { trackingToken: token },
+      include: {
+        driver: { select: { name: true, phone: true, vehicleMake: true, vehicleModel: true, vehicleColour: true, vehicleReg: true, lat: true, lng: true } },
+        hotel: { select: { name: true, address: true } },
       },
     });
   }
