@@ -31,16 +31,20 @@ export default function DriverDashboard() {
 
     // Check approval status
     const token = getToken();
-    if (token) {
-      fetch(`${API_URL}/api/v1/bookings/driver/profile`, {
-        headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' }
-      }).then(r=>r.ok?r.json():null).then(d=>{
-        if(d) { setIsApproved(d.isApproved); if(d.name) setDriverName(d.name); }
-        else setIsApproved(false);
-      }).catch(()=>setIsApproved(false));
-    } else {
-      setIsApproved(false);
+    if (!token) {
+      // No session — send to login immediately
+      window.location.href = '/driver/login';
+      return;
     }
+    fetch(`${API_URL}/api/v1/bookings/driver/profile`, {
+      headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' }
+    }).then(r => {
+      if (r.status === 401) { window.location.href = '/driver/login'; return null; }
+      return r.ok ? r.json() : null;
+    }).then(d => {
+      if (d) { setIsApproved(d.isApproved); if (d.name) setDriverName(d.name); }
+      else if (d !== null) setIsApproved(false);
+    }).catch(() => setIsApproved(false));
 
     // Request location permission immediately on load
     if (navigator.geolocation) {
