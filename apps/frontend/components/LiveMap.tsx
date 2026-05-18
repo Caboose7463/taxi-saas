@@ -25,7 +25,7 @@ export default function LiveMap({ hotelLat = 51.0693, hotelLng = -1.7942, driver
         html: `<div style="width:32px;height:32px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.3);color:#fff;font-size:11px;font-weight:700">${d.name?.charAt(0)?.toUpperCase()||'D'}</div>`,
         className: '', iconSize: [32, 32], iconAnchor: [16, 16],
       });
-      const m = L.marker([d.lat, d.lng], { icon }).addTo(map);
+      const m = L.marker([d.lat, d.lng], { icon, zIndexOffset: 1000 }).addTo(map);
       m.bindPopup(`<strong>${d.name}</strong><br/>${d.status||'Online'}`);
       markersRef.current.push(m);
     });
