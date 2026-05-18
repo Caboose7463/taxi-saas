@@ -14,6 +14,14 @@ const DOCS = [
 export default function DriverSignup() {
   const router = useRouter();
   const [step, setStep] = useState<'details'|'vehicle'|'docs'|'done'>('details');
+
+  // Clear any existing hotel session so it doesn't interfere
+  React.useEffect(() => {
+    // Only clear the hotel staffInfo, keep any driver info
+    localStorage.removeItem('staffInfo');
+    // Clear the shared token cookie so hotel session doesn't redirect
+    document.cookie = 'token=; path=/; max-age=0';
+  }, []);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ name:'', email:'', phone:'', password:'', vehicleMake:'', vehicleModel:'', vehicleReg:'', vehicleColour:'' });
   const [docs, setDocs] = useState<Record<string,string>>({});
