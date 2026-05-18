@@ -153,4 +153,18 @@ export class BookingController {
     return this.bookingService.removeHotelStaff(id);
   }
 
+
+  @Patch('driver/location')
+  async updateDriverLocation(@Headers('authorization') auth: string, @Body() body: { lat: number; lng: number }) {
+    const token = auth?.replace('Bearer ', '');
+    let driverId = '';
+    try { const p = this.jwtService.verify(token) as any; driverId = p.sub; } catch { throw new UnauthorizedException('Invalid token'); }
+    return this.bookingService.updateDriverLocation(driverId, body.lat, body.lng);
+  }
+
+  @Get('drivers/online')
+  async getOnlineDrivers() {
+    return this.bookingService.getOnlineDrivers();
+  }
+
 }

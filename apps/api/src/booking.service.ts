@@ -261,4 +261,24 @@ export class BookingService {
     return this.prisma.hotelStaff.delete({ where: { id: staffId } });
   }
 
+
+  async updateDriverLocation(driverId: string, lat: number, lng: number) {
+    return this.prisma.driver.update({
+      where: { id: driverId },
+      data: { lat, lng, lastSeenAt: new Date(), isOnline: true }
+    });
+  }
+
+  async getOnlineDrivers() {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return this.prisma.driver.findMany({
+      where: {
+        isOnline: true,
+        isApproved: true,
+        lastSeenAt: { gte: fiveMinutesAgo }
+      },
+      select: { id: true, name: true, lat: true, lng: true, isOnline: true }
+    });
+  }
+
 }

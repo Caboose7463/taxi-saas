@@ -23,6 +23,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [driver2Pos, setDriver2Pos] = useState({ x: 65, y: 40 });
   const [estimate, setEstimate] = useState<any>(null);
   const [pickupCoords, setPickupCoords] = useState<{lat:number;lng:number}|null>({lat:51.0704775,lng:-1.8040052});
+  const [onlineDrivers, setOnlineDrivers] = useState<any[]>([]);
   const [dropoffCoords, setDropoffCoords] = useState<{lat:number;lng:number}|null>(null);
   const [estimating, setEstimating] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -37,6 +38,19 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
 
   useEffect(() => {
     const socket = io(API_URL, { transports: ['websocket','polling'] });
+
+    // Poll for online driver locations every 30s
+    const pollDrivers = () => {
+      fetch(`${API_URL}/api/v1/bookings/drivers/online`,{headers:{'bypass-tunnel-reminder':'true'}})
+        .then(r=>r.ok?r.json():[]).then(data=>{
+          const mapped = data.filter((d:any)=>d.currentLat&&d.currentLng).map((d:any)=>({
+            id:d.id, name:d.name||'Driver', lat:d.lat, lng:d.lng, status:'Online'
+          }));
+          setOnlineDrivers(mapped);
+        }).catch(()=>{});
+    };
+    pollDrivers();
+    const driverPollInterval = setInterval(pollDrivers, 30000);
 
     // Always fetch fresh hotel profile from API so name/address are current
     const token = document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
@@ -238,7 +252,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
                     hotelLat={51.0704775}
                     hotelLng={-1.8040052}
                     height="280px"
-                    drivers={[]}
+                    drivers={onlineDrivers}
                   />
                 </div>
                 <div className="p-3 border-t border-gray-50"><p className="text-xs text-gray-400 text-center">Real-time driver locations</p></div>

@@ -42,6 +42,8 @@ model Driver {
   lat               Float?
   lng               Float?
   isApproved        Boolean   @default(false)
+  isOnline          Boolean   @default(false)
+  lastSeenAt        DateTime?
   isRejected        Boolean   @default(false)
   vehicleMake       String?
   vehicleModel      String?
