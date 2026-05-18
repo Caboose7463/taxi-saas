@@ -81,6 +81,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   }, []);
 
   const getToken = () => document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
+  const requireToken = () => {
+    const t = getToken();
+    if (!t) { window.location.href = '/login'; return null; }
+    return t;
+  };
 
   const fetchBookings = useCallback(async () => {
     setBookingsLoading(true);
@@ -106,6 +111,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const handleBook = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!pickup || !dropoff) return;
+    const token = requireToken(); if (!token) return;
     setLoading(true);
     try {
       let est = estimate;
@@ -115,7 +121,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
       }
       const res = await fetch(`${API_URL}/api/v1/bookings`, {
         method:'POST',
-        headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${getToken()}`},
+        headers:{'Content-Type':'application/json','bypass-tunnel-reminder':'true',Authorization:`Bearer ${token}`},
         body: JSON.stringify({ pickupAddress:pickup, dropoffAddress:dropoff, fare:est.fare, hotelCommission:est.hotelCommission, driverPayout:est.driverPayout, guestName, guestPhone, notes, scheduledFor: isScheduled ? scheduledFor : undefined })
       });
       if (res.ok) {
@@ -125,6 +131,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
         fetchBookings();
       } else {
         const err = await res.json().catch(()=>({}));
+        if (res.status === 401) { window.location.href = '/login'; return; }
         alert('Booking failed: '+(err.message||res.status));
       }
     } catch { alert('Network error — please try again'); }
