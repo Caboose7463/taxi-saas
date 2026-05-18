@@ -94,4 +94,24 @@ export class BookingController {
     }
     return this.bookingService.acceptBooking(id, resolvedDriverId || 'unknown');
   }
+
+  @Get('drivers/pending')
+  async getPendingDrivers() {
+    return this.bookingService.getPendingDrivers();
+  }
+
+  @Patch('drivers/:id/approve')
+  async approveDriver(@Param('id') id: string) {
+    return this.bookingService.approveDriver(id);
+  }
+
+  @Patch('drivers/:id/reject')
+  async rejectDriver(@Param('id') id: string, @Body('notes') notes: string) {
+    return this.bookingService.rejectDriver(id, notes);
+  }
+
+  @Get('drivers/all')
+  async getAllDrivers() {
+    return this.bookingService.getAllDrivers();
+  }
 }

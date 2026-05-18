@@ -2,294 +2,251 @@
 import { API_URL } from '@/lib/api';
 import React, { useEffect, useState, useCallback } from 'react';
 
-interface Stat { label: string; value: string; change: string; up: boolean; color: string; }
-interface Booking {
-  id: string; pickupAddress: string; dropoffAddress: string;
-  fare: number; status: string; createdAt: string; hotelId?: string;
-}
-interface Hotel { id: string; name: string; subdomain: string; commission_rate: number; }
-
 export default function AdminDashboard() {
-  const [tab, setTab] = useState<'overview' | 'bookings' | 'hotels' | 'drivers'>('overview');
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [tab, setTab] = useState<'overview'|'bookings'|'drivers'|'hotels'>('overview');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [pendingDrivers, setPendingDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [newHotel, setNewHotel] = useState({ name: '', subdomain: '', commission: '15' });
-  const [showNewHotel, setShowNewHotel] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<any>(null);
 
-  const token = typeof window !== 'undefined'
-    ? document.cookie.split(';').find(c => c.trim().startsWith('token='))?.split('=')[1]
-    : '';
+  const token = typeof window!=='undefined' ? document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1] : '';
+  const headers = { Authorization:`Bearer ${token}`, 'bypass-tunnel-reminder':'true' };
 
-  const fetchData = useCallback(async () => {
+  const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [bRes, hRes] = await Promise.all([
-        fetch(`${API_URL}/api/v1/bookings/active`, { headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' } }),
-        fetch(`${API_URL}/api/v1/hotels`, { headers: { Authorization: `Bearer ${token}`, 'bypass-tunnel-reminder': 'true' } }),
+      const [bRes,dRes,pRes] = await Promise.all([
+        fetch(`${API_URL}/api/v1/bookings/active`,{headers}),
+        fetch(`${API_URL}/api/v1/bookings/drivers/all`,{headers}),
+        fetch(`${API_URL}/api/v1/bookings/drivers/pending`,{headers}),
       ]);
-      if (bRes.ok) setBookings(await bRes.json());
-      if (hRes.ok) setHotels(await hRes.json());
+      if(bRes.ok) setBookings(await bRes.json());
+      if(dRes.ok) setDrivers(await dRes.json());
+      if(pRes.ok) setPendingDrivers(await pRes.json());
     } catch {}
     setLoading(false);
-  }, [token]);
+  }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(()=>{ fetchAll(); },[fetchAll]);
 
-  const totalRevenue = bookings.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + b.fare, 0);
-  const totalCommission = bookings.filter(b => b.status === 'COMPLETED').reduce((s, b) => s + b.fare * 0.15, 0);
-  const pendingBookings = bookings.filter(b => b.status === 'PENDING').length;
-  const activeBookings = bookings.filter(b => b.status === 'ACCEPTED').length;
+  const approveDriver = async (id:string) => {
+    await fetch(`${API_URL}/api/v1/bookings/drivers/${id}/approve`,{method:'PATCH',headers});
+    fetchAll();
+  };
+  const rejectDriver = async (id:string) => {
+    const notes = prompt('Reason for rejection (optional):') || '';
+    await fetch(`${API_URL}/api/v1/bookings/drivers/${id}/reject`,{method:'PATCH',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify({notes})});
+    fetchAll();
+  };
 
-  const stats: Stat[] = [
-    { label: 'Total Revenue', value: `£${totalRevenue.toFixed(2)}`, change: '+12% this week', up: true, color: 'from-blue-500 to-blue-600' },
-    { label: 'Platform Commission', value: `£${totalCommission.toFixed(2)}`, change: '+8% this week', up: true, color: 'from-purple-500 to-purple-600' },
-    { label: 'Hotels Onboarded', value: String(hotels.length || 1), change: '+1 this week', up: true, color: 'from-green-500 to-green-600' },
-    { label: 'Active Rides', value: String(activeBookings), change: `${pendingBookings} pending`, up: activeBookings > 0, color: 'from-orange-500 to-orange-600' },
-  ];
+  const totalRevenue = bookings.filter(b=>b.status==='COMPLETED').reduce((s,b)=>s+b.fare,0);
+  const platformRevenue = bookings.filter(b=>b.status==='COMPLETED').reduce((s,b)=>s+b.fare*(1-0.025-0.9),0);
+  const completedTrips = bookings.filter(b=>b.status==='COMPLETED').length;
+  const activeCount = bookings.filter(b=>['PENDING','ACCEPTED','EN_ROUTE'].includes(b.status)).length;
 
-  function getStatusBadge(status: string) {
-    const map: Record<string, string> = {
-      PENDING: 'bg-amber-100 text-amber-700',
-      ACCEPTED: 'bg-blue-100 text-blue-700',
-      COMPLETED: 'bg-green-100 text-green-700',
-      CANCELLED: 'bg-red-100 text-red-700',
-    };
-    return map[status] || 'bg-gray-100 text-gray-600';
-  }
+  const statusColor = (s:string) => ({PENDING:'bg-amber-100 text-amber-700',ACCEPTED:'bg-blue-100 text-blue-700',COMPLETED:'bg-green-100 text-green-700',CANCELLED:'bg-red-100 text-red-700',EN_ROUTE:'bg-purple-100 text-purple-700'}[s]||'bg-gray-100 text-gray-600');
 
   return (
-    <div className="flex h-screen bg-gray-950 text-white overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-56 bg-gray-900 border-r border-gray-800 flex flex-col p-4">
-        <div className="flex items-center gap-2 mb-8 px-2">
-          <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-xs font-bold">T</div>
-          <span className="font-bold text-sm">Transit Admin</span>
+    <div className="flex h-screen bg-[#F5F5F7]" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
+      <aside className="w-56 bg-white border-r border-gray-100 flex flex-col p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-8">
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm">T</div>
+          <div><p className="font-bold text-sm">Transit Pro</p><p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Super Admin</p></div>
         </div>
         <nav className="flex flex-col gap-1 flex-1">
-          {[
-            { id: 'overview', label: 'Overview', icon: '📊' },
-            { id: 'bookings', label: 'All Bookings', icon: '🚖' },
-            { id: 'hotels', label: 'Hotels', icon: '🏨' },
-            { id: 'drivers', label: 'Drivers', icon: '👤' },
-          ].map(item => (
-            <button key={item.id} onClick={() => setTab(item.id as any)}
-              className={`px-3 py-2.5 rounded-lg text-left flex items-center gap-2.5 text-sm transition-all ${tab === item.id ? 'bg-gray-800 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800/50'}`}>
-              <span className="text-base">{item.icon}</span>{item.label}
+          {([['overview','📊','Overview'],['bookings','🚖','All Bookings'],['drivers','👤','Drivers'],['hotels','🏨','Hotels']] as const).map(([id,icon,label])=>(
+            <button key={id} onClick={()=>setTab(id)}
+              className={`px-3 py-2.5 rounded-xl text-left flex items-center gap-2.5 text-sm font-medium transition-all ${tab===id?'bg-black text-white':'text-gray-600 hover:bg-gray-50'}`}>
+              <span>{icon}</span>{label}
+              {id==='drivers'&&pendingDrivers.length>0&&<span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{pendingDrivers.length}</span>}
             </button>
           ))}
         </nav>
-        <div className="border-t border-gray-800 pt-4">
-          <button onClick={() => { document.cookie = 'token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/'; window.location.href = '/login'; }}
-            className="w-full text-left text-xs text-gray-500 hover:text-red-400 px-3 py-2 transition-colors">
-            Sign out →
-          </button>
+        <div className="border-t border-gray-100 pt-4">
+          <button onClick={()=>{document.cookie='token=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';window.location.href='/login';}} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Sign out →</button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="bg-gray-900/50 border-b border-gray-800 px-8 py-4 flex justify-between items-center backdrop-blur sticky top-0 z-10">
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-white border-b border-gray-100 px-8 py-4 flex justify-between items-center">
           <div>
-            <h1 className="font-bold text-lg capitalize">{tab === 'overview' ? 'Platform Overview' : tab === 'bookings' ? 'All Bookings' : tab === 'hotels' ? 'Hotel Management' : 'Driver Management'}</h1>
-            <p className="text-xs text-gray-500">{new Date().toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h1 className="text-lg font-bold capitalize">{tab==='overview'?'Platform Overview':tab==='bookings'?'All Bookings':tab==='drivers'?'Driver Management':'Hotel Management'}</h1>
+            <p className="text-xs text-gray-400">{new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
           </div>
-          <button onClick={fetchData} className="text-xs bg-gray-800 hover:bg-gray-700 px-4 py-2 rounded-lg transition-colors flex items-center gap-2">
-            <span>↻</span> Refresh
-          </button>
+          <button onClick={fetchAll} className="text-xs bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl font-medium transition-colors">↻ Refresh</button>
         </header>
 
-        <div className="p-8">
-          {/* OVERVIEW */}
-          {tab === 'overview' && (
-            <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto p-8">
+
+          {tab==='overview'&&(
+            <div className="space-y-6 max-w-4xl">
               <div className="grid grid-cols-4 gap-4">
-                {stats.map((s, i) => (
-                  <div key={i} className={`bg-gradient-to-br ${s.color} rounded-2xl p-5 shadow-lg`}>
-                    <p className="text-white/70 text-xs font-medium uppercase tracking-wide mb-1">{s.label}</p>
-                    <p className="text-3xl font-bold text-white mb-1">{s.value}</p>
-                    <p className={`text-xs ${s.up ? 'text-white/80' : 'text-white/60'}`}>{s.change}</p>
+                {[
+                  {label:'Total Bookings',value:bookings.length,icon:'📦',color:'from-blue-500 to-blue-600'},
+                  {label:'Active Now',value:activeCount,icon:'🔵',color:'from-orange-400 to-orange-500'},
+                  {label:'Platform Revenue',value:`£${platformRevenue.toFixed(2)}`,icon:'💰',color:'from-green-500 to-green-600'},
+                  {label:'All Drivers',value:drivers.length,icon:'🚖',color:'from-purple-500 to-purple-600'},
+                ].map((s,i)=>(
+                  <div key={i} className={`bg-gradient-to-br ${s.color} rounded-2xl p-5 text-white shadow-sm`}>
+                    <p className="text-white/70 text-xs uppercase tracking-wide mb-1">{s.label}</p>
+                    <p className="text-3xl font-bold">{s.value}</p>
                   </div>
                 ))}
               </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                  <h3 className="font-bold mb-4 text-sm">Recent Bookings</h3>
-                  {loading ? <p className="text-gray-500 text-sm">Loading...</p> :
-                    bookings.slice(0, 5).length === 0 ? <p className="text-gray-500 text-sm">No bookings yet — book a test ride!</p> :
-                    bookings.slice(0, 5).map(b => (
-                      <div key={b.id} className="flex justify-between items-center py-2.5 border-b border-gray-800 last:border-0">
-                        <div>
-                          <p className="text-sm font-medium truncate max-w-[180px]">{b.dropoffAddress}</p>
-                          <p className="text-xs text-gray-500">{new Date(b.createdAt).toLocaleTimeString('en-GB')}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold">£{b.fare?.toFixed(2)}</p>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusBadge(b.status)}`}>{b.status}</span>
-                        </div>
-                      </div>
-                    ))
-                  }
-                </div>
-
-                <div className="bg-gray-900 rounded-2xl p-6 border border-gray-800">
-                  <h3 className="font-bold mb-4 text-sm">System Health</h3>
-                  <div className="space-y-3">
-                    {[
-                      { label: 'Backend API', status: 'Operational', color: 'bg-green-500' },
-                      { label: 'Database (Supabase)', status: 'Operational', color: 'bg-green-500' },
-                      { label: 'WebSocket Server', status: 'Operational', color: 'bg-green-500' },
-                      { label: 'Authentication', status: 'Operational', color: 'bg-green-500' },
-                    ].map((item, i) => (
-                      <div key={i} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-300">{item.label}</span>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${item.color} animate-pulse`}></div>
-                          <span className="text-xs text-green-400">{item.status}</span>
-                        </div>
+              {pendingDrivers.length>0&&(
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-amber-800">⏳ {pendingDrivers.length} Driver{pendingDrivers.length>1?'s':''} Awaiting Approval</h3>
+                    <button onClick={()=>setTab('drivers')} className="text-xs text-amber-700 font-bold underline">Review →</button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {pendingDrivers.map(d=>(
+                      <div key={d.id} className="bg-white rounded-xl px-3 py-2 flex items-center gap-2 border border-amber-100">
+                        <span className="text-sm font-medium">{d.name}</span>
+                        <button onClick={()=>approveDriver(d.id)} className="text-xs text-green-600 font-bold hover:text-green-800">✓ Approve</button>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-800">
-                    <p className="text-xs text-gray-500">Backend: taxi-saas-backend.onrender.com</p>
-                    <p className="text-xs text-gray-500 mt-1">DB: Supabase PostgreSQL (EU North)</p>
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <h3 className="font-bold text-sm mb-4">Revenue Breakdown</h3>
+                  <div className="space-y-2">
+                    {[
+                      {label:'Total fares',value:`£${totalRevenue.toFixed(2)}`},
+                      {label:'Driver payouts (90%)',value:`£${(totalRevenue*0.9).toFixed(2)}`},
+                      {label:'Hotel commissions (2.5%)',value:`£${(totalRevenue*0.025).toFixed(2)}`},
+                      {label:'Platform revenue (7.5%)',value:`£${platformRevenue.toFixed(2)}`,bold:true},
+                    ].map((r,i)=>(
+                      <div key={i} className={`flex justify-between items-center py-1.5 ${i<3?'border-b border-gray-50':''}`}>
+                        <span className="text-sm text-gray-600">{r.label}</span>
+                        <span className={`text-sm ${r.bold?'font-bold text-green-600':'font-medium'}`}>{r.value}</span>
+                      </div>
+                    ))}
                   </div>
+                </div>
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                  <h3 className="font-bold text-sm mb-4">System Health</h3>
+                  {[
+                    {label:'Backend API',status:'Operational',url:'taxi-saas-backend.onrender.com'},
+                    {label:'Database',status:'Operational',url:'Supabase PostgreSQL'},
+                    {label:'WebSockets',status:'Operational',url:'Socket.io'},
+                    {label:'Frontend',status:'Operational',url:'Vercel'},
+                  ].map((item,i)=>(
+                    <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                      <div><p className="text-sm font-medium">{item.label}</p><p className="text-xs text-gray-400">{item.url}</p></div>
+                      <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"/><span className="text-xs text-green-600 font-medium">{item.status}</span></div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* BOOKINGS */}
-          {tab === 'bookings' && (
-            <div>
-              <div className="bg-gray-900 rounded-2xl border border-gray-800 overflow-hidden">
-                <div className="p-4 border-b border-gray-800 flex justify-between items-center">
-                  <p className="text-sm text-gray-400">{bookings.length} total bookings</p>
+          {tab==='bookings'&&(
+            <div className="max-w-5xl">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-50 flex justify-between">
+                  <p className="text-sm text-gray-500">{bookings.length} total bookings</p>
                 </div>
-                {loading ? <div className="p-8 text-center text-gray-500">Loading...</div> :
-                  bookings.length === 0 ? <div className="p-8 text-center text-gray-500">No bookings yet</div> : (
+                {loading?<div className="p-8 text-center text-gray-400">Loading...</div>:
+                bookings.length===0?<div className="p-8 text-center text-gray-400">No bookings yet</div>:(
+                <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-800">
-                        {['Time', 'Pickup', 'Dropoff', 'Fare', 'Commission', 'Status'].map(h => (
-                          <th key={h} className="text-left px-4 py-3 text-xs text-gray-500 font-medium uppercase tracking-wide">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
+                    <thead><tr className="border-b border-gray-100">{['Time','Guest','Pickup','Dropoff','Fare','Hotel Commission','Driver Payout','Status'].map(h=><th key={h} className="text-left px-4 py-3 text-xs text-gray-400 font-medium">{h}</th>)}</tr></thead>
                     <tbody>
-                      {bookings.map(b => (
-                        <tr key={b.id} className="border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
-                          <td className="px-4 py-3 text-gray-400 text-xs">{new Date(b.createdAt).toLocaleString('en-GB')}</td>
-                          <td className="px-4 py-3 max-w-[150px] truncate text-gray-300">{b.pickupAddress}</td>
-                          <td className="px-4 py-3 max-w-[150px] truncate">{b.dropoffAddress}</td>
+                      {bookings.map(b=>(
+                        <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-400 text-xs whitespace-nowrap">{new Date(b.createdAt).toLocaleString('en-GB',{hour:'2-digit',minute:'2-digit',day:'numeric',month:'short'})}</td>
+                          <td className="px-4 py-3 text-gray-600">{b.guestName||'—'}</td>
+                          <td className="px-4 py-3 max-w-[120px] truncate text-gray-700">{b.pickupAddress}</td>
+                          <td className="px-4 py-3 max-w-[120px] truncate">{b.dropoffAddress}</td>
                           <td className="px-4 py-3 font-bold">£{b.fare?.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-purple-400">£{(b.fare * 0.15).toFixed(2)}</td>
-                          <td className="px-4 py-3"><span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusBadge(b.status)}`}>{b.status}</span></td>
+                          <td className="px-4 py-3 text-green-600">£{(b.hotelCommission||b.fare*0.025).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-blue-600">£{(b.driverPayout||b.fare*0.9).toFixed(2)}</td>
+                          <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-lg font-medium ${statusColor(b.status)}`}>{b.status}</span></td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                )}
+                </div>)}
               </div>
             </div>
           )}
 
-          {/* HOTELS */}
-          {tab === 'hotels' && (
-            <div className="space-y-4">
-              <div className="flex justify-end">
-                <button onClick={() => setShowNewHotel(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors">
-                  + Onboard New Hotel
-                </button>
-              </div>
-
-              {showNewHotel && (
-                <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
-                  <h3 className="font-bold mb-4">Onboard New Hotel</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Hotel Name</label>
-                      <input value={newHotel.name} onChange={e => setNewHotel(p => ({...p, name: e.target.value}))}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="The Ritz London" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Subdomain</label>
-                      <input value={newHotel.subdomain} onChange={e => setNewHotel(p => ({...p, subdomain: e.target.value.toLowerCase().replace(/\s/g,'')}))}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="ritz" />
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 block mb-1">Commission %</label>
-                      <input type="number" value={newHotel.commission} onChange={e => setNewHotel(p => ({...p, commission: e.target.value}))}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 mt-4">
-                    <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors">Create Hotel</button>
-                    <button onClick={() => setShowNewHotel(false)} className="text-gray-400 hover:text-white px-4 py-2 rounded-xl text-sm transition-colors">Cancel</button>
+          {tab==='drivers'&&(
+            <div className="max-w-4xl space-y-6">
+              {pendingDrivers.length>0&&(
+                <div>
+                  <h2 className="font-bold mb-3 text-base flex items-center gap-2">⏳ Pending Approval <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingDrivers.length}</span></h2>
+                  <div className="space-y-3">
+                    {pendingDrivers.map(d=>(
+                      <div key={d.id} className="bg-white rounded-2xl p-5 border border-amber-200 shadow-sm">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <p className="font-bold">{d.name}</p>
+                            <p className="text-xs text-gray-500">{d.email} · {d.phone}</p>
+                            {d.vehicleMake&&<p className="text-xs text-gray-500 mt-0.5">{d.vehicleColour} {d.vehicleMake} {d.vehicleModel} · {d.vehicleReg}</p>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={()=>approveDriver(d.id)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors">✓ Approve</button>
+                            <button onClick={()=>rejectDriver(d.id)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-xl transition-colors">✗ Reject</button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[['licenceDoc','Driving Licence'],['phLicenceDoc','PH Licence'],['insuranceDoc','Insurance'],['motDoc','MOT']].map(([key,label])=>(
+                            <div key={key} className={`text-center p-2 rounded-xl text-xs font-medium ${d[key]?'bg-green-50 text-green-700 border border-green-200':'bg-gray-50 text-gray-400 border border-gray-100'}`}>
+                              {d[key]?'✓':'-'} {label}
+                              {d[key]&&<div className="mt-1"><a href={d[key]} target="_blank" className="text-blue-500 underline text-[10px]">View</a></div>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
-
-              <div className="grid grid-cols-3 gap-4">
-                {(hotels.length ? hotels : [{id:'1', name:'The Grand Hotel', subdomain:'grandhotel', commission_rate:15}]).map((h, i) => (
-                  <div key={i} className="bg-gray-900 rounded-2xl border border-gray-800 p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center font-bold">
-                        {h.name[0]}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm">{h.name}</p>
-                        <p className="text-xs text-gray-500">{h.subdomain}.yourdomain.com</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="bg-gray-800 rounded-lg p-2 text-center">
-                        <p className="text-gray-400">Commission</p>
-                        <p className="font-bold text-green-400">{h.commission_rate}%</p>
-                      </div>
-                      <div className="bg-gray-800 rounded-lg p-2 text-center">
-                        <p className="text-gray-400">Status</p>
-                        <p className="font-bold text-green-400">Active</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 pt-3 border-t border-gray-800 flex gap-2">
-                      <button className="flex-1 text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 py-1.5 rounded-lg transition-colors">View Dashboard</button>
-                      <button className="flex-1 text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 py-1.5 rounded-lg transition-colors">Edit</button>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <h2 className="font-bold mb-3 text-base">All Drivers ({drivers.length})</h2>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-gray-100">{['Name','Email','Vehicle','Reg','Status','Approved'].map(h=><th key={h} className="text-left px-4 py-3 text-xs text-gray-400 font-medium">{h}</th>)}</tr></thead>
+                    <tbody>
+                      {drivers.map(d=>(
+                        <tr key={d.id} className="border-b border-gray-50 hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium">{d.name}</td>
+                          <td className="px-4 py-3 text-gray-500">{d.email}</td>
+                          <td className="px-4 py-3 text-gray-600">{d.vehicleMake} {d.vehicleModel}</td>
+                          <td className="px-4 py-3 font-mono text-xs">{d.vehicleReg||'—'}</td>
+                          <td className="px-4 py-3"><span className={`text-xs px-2 py-1 rounded-lg ${d.status==='ONLINE'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600'}`}>{d.status}</span></td>
+                          <td className="px-4 py-3">{d.isApproved?<span className="text-green-600 font-bold text-xs">✓ Yes</span>:d.isRejected?<span className="text-red-500 text-xs">✗ Rejected</span>:<span className="text-amber-600 text-xs">⏳ Pending</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {drivers.length===0&&<div className="p-8 text-center text-gray-400">No drivers yet</div>}
+                </div>
               </div>
             </div>
           )}
 
-          {/* DRIVERS */}
-          {tab === 'drivers' && (
-            <div className="bg-gray-900 rounded-2xl border border-gray-800 p-8 text-center">
-              <p className="text-4xl mb-3">👤</p>
-              <h3 className="font-bold mb-2">Driver Management</h3>
-              <p className="text-gray-400 text-sm mb-4">Drivers register via the driver signup page.<br/>They appear here once approved.</p>
-              <div className="grid grid-cols-3 gap-4 max-w-md mx-auto mt-6">
-                <div className="bg-gray-800 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-green-400">4</p>
-                  <p className="text-xs text-gray-500">Active</p>
+          {tab==='hotels'&&(
+            <div className="max-w-2xl">
+              <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center">
+                <p className="text-4xl mb-3">🏨</p>
+                <h3 className="font-bold mb-2">Hotel Management</h3>
+                <p className="text-gray-400 text-sm mb-6">Hotels are onboarded via the database. Each hotel gets their own login and dashboard.</p>
+                <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto">
+                  <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100"><p className="text-xl font-bold">1</p><p className="text-xs text-gray-500">Active</p></div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100"><p className="text-xl font-bold text-green-600">£{(totalRevenue*0.025).toFixed(0)}</p><p className="text-xs text-gray-500">Commissions</p></div>
+                  <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100"><p className="text-xl font-bold">{completedTrips}</p><p className="text-xs text-gray-500">Bookings</p></div>
                 </div>
-                <div className="bg-gray-800 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold text-amber-400">2</p>
-                  <p className="text-xs text-gray-500">Pending</p>
-                </div>
-                <div className="bg-gray-800 rounded-xl p-3 text-center">
-                  <p className="text-2xl font-bold">6</p>
-                  <p className="text-xs text-gray-500">Total</p>
-                </div>
-              </div>
-              <div className="mt-6">
-                <a href="/driver/signup" className="text-blue-400 text-sm hover:underline">Driver Signup Link →</a>
               </div>
             </div>
           )}
+
         </div>
       </main>
     </div>

@@ -159,4 +159,28 @@ export class BookingService {
       },
     });
   }
+
+  async getPendingDrivers() {
+    return this.prisma.driver.findMany({
+      where: { isApproved: false, isRejected: false },
+      orderBy: { createdAt: 'desc' },
+      select: { id:true, name:true, email:true, phone:true, vehicleMake:true, vehicleModel:true, vehicleReg:true, vehicleColour:true, licenceDoc:true, phLicenceDoc:true, insuranceDoc:true, motDoc:true, profilePhoto:true, createdAt:true }
+    });
+  }
+
+  async approveDriver(driverId: string) {
+    return this.prisma.driver.update({ where:{ id:driverId }, data:{ isApproved:true, isRejected:false } });
+  }
+
+  async rejectDriver(driverId: string, notes: string) {
+    return this.prisma.driver.update({ where:{ id:driverId }, data:{ isApproved:false, isRejected:true, adminNotes:notes } });
+  }
+
+  async getAllDrivers() {
+    return this.prisma.driver.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { id:true, name:true, email:true, phone:true, status:true, isApproved:true, isRejected:true, vehicleMake:true, vehicleModel:true, vehicleReg:true, createdAt:true, adminNotes:true }
+    });
+  }
+
 }

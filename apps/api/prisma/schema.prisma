@@ -32,18 +32,33 @@ model HotelStaff {
 }
 
 model Driver {
-  id         String    @id @default(uuid())
-  name       String
-  email      String    @unique
-  password   String
-  phone      String    @unique
-  status     String    @default("OFFLINE")
-  lat        Float?
-  lng        Float?
-  isApproved Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  bookings   Booking[]
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String
+  phone             String    @unique
+  status            String    @default("OFFLINE")
+  lat               Float?
+  lng               Float?
+  isApproved        Boolean   @default(false)
+  isRejected        Boolean   @default(false)
+  vehicleMake       String?
+  vehicleModel      String?
+  vehicleReg        String?
+  vehicleColour     String?
+  licenceDoc        String?
+  phLicenceDoc      String?
+  insuranceDoc      String?
+  motDoc            String?
+  profilePhoto      String?
+  licenceExpiry     DateTime?
+  phLicenceExpiry   DateTime?
+  insuranceExpiry   DateTime?
+  motExpiry         DateTime?
+  adminNotes        String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  bookings          Booking[]
 }
 
 model Booking {

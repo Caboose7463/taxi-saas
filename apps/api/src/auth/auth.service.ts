@@ -34,6 +34,15 @@ export class AuthService {
         password: hashedPassword,
         status: 'OFFLINE',
         isApproved: false,
+        vehicleMake: data.vehicleMake || '',
+        vehicleModel: data.vehicleModel || '',
+        vehicleReg: data.vehicleReg || '',
+        vehicleColour: data.vehicleColour || '',
+        licenceDoc: data.licenceDoc || '',
+        phLicenceDoc: data.phLicenceDoc || '',
+        insuranceDoc: data.insuranceDoc || '',
+        motDoc: data.motDoc || '',
+        profilePhoto: data.profilePhoto || '',
       }
     });
 
