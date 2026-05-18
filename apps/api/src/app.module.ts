@@ -7,6 +7,7 @@ import { BookingController } from './booking.controller';
 import { BookingService } from './booking.service';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
+import { EmailService } from './email.service';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { JwtModule } from '@nestjs/jwt';
     }),
   ],
   controllers: [AppController, BookingController],
-  providers: [AppService, DispatchGateway, PrismaService, BookingService],
+  providers: [AppService, DispatchGateway, PrismaService, BookingService, EmailService],
 })
 export class AppModule {}

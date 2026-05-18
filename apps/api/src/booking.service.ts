@@ -1,4 +1,5 @@
 import { Injectable, Inject, forwardRef } from '@nestjs/common';
+import { EmailService } from './email.service';
 import { PrismaService } from './prisma.service';
 import { Prisma } from '@prisma/client';
 import { Client } from '@googlemaps/google-maps-services-js';
@@ -11,7 +12,8 @@ export class BookingService {
   constructor(
     private prisma: PrismaService,
     @Inject(forwardRef(() => DispatchGateway))
-    private dispatchGateway: DispatchGateway
+    private dispatchGateway: DispatchGateway,
+    private emailService: EmailService
   ) {
     this.mapsClient = new Client({});
   }
@@ -117,7 +119,8 @@ export class BookingService {
     
     // Broadcast the new booking instantly to all ONLINE drivers via WebSockets
     this.dispatchGateway.server.emit('new_booking_request', booking);
-    
+    // Send email confirmation log
+    this.emailService.bookingConfirmed('Hotel', data.guestName as string || '', data.pickupAddress, data.dropoffAddress, data.fare);
     return booking;
   }
 
@@ -169,7 +172,9 @@ export class BookingService {
   }
 
   async approveDriver(driverId: string) {
-    return this.prisma.driver.update({ where:{ id:driverId }, data:{ isApproved:true, isRejected:false } });
+    const driver = await this.prisma.driver.update({ where:{ id:driverId }, data:{ isApproved:true, isRejected:false } });
+    this.emailService.driverApproved(driver.email, driver.name);
+    return driver;
   }
 
   async rejectDriver(driverId: string, notes: string) {
