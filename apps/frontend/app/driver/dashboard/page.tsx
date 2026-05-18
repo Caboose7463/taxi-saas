@@ -18,6 +18,7 @@ export default function DriverDashboard() {
   const getToken = () => document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
 
   const [isApproved, setIsApproved] = useState<boolean|null>(null);
+  const [cachedPosition, setCachedPosition] = useState<GeolocationPosition|null>(null);
 
   useEffect(() => {
     try {
@@ -38,6 +39,15 @@ export default function DriverDashboard() {
       }).catch(()=>setIsApproved(false));
     } else {
       setIsApproved(false);
+    }
+
+    // Request location permission immediately on load
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        pos => setCachedPosition(pos),
+        err => console.log('Location denied:', err.message),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
     }
 
     const s = io(API_URL, { transports:['websocket','polling'] });
