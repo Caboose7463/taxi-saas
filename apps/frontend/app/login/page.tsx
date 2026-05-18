@@ -29,7 +29,7 @@ export default function HotelLogin() {
           localStorage.setItem('staffInfo', JSON.stringify(result.staff));
         }
         // Read subdomain from response and redirect to hotel dashboard
-        const subdomain = result.staff?.subdomain || 'grandhotel';
+        const subdomain = result.staff?.subdomain || 'caboose';
         router.push(`/hotel/${subdomain}`);
       } else {
         const err = await res.json();
@@ -57,7 +57,7 @@ export default function HotelLogin() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-            <input name="email" type="email" required className="w-full bg-[#FAFAFA] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all" placeholder="reception@grandhotel.com" />
+            <input name="email" type="email" required className="w-full bg-[#FAFAFA] border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all" placeholder="reception@caboose.com" />
           </div>
 
           <div>
