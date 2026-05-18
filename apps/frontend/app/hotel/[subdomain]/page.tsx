@@ -19,8 +19,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
-  const [driverPos, setDriverPos] = useState({ x: 35, y: 55 });
-  const [driver2Pos, setDriver2Pos] = useState({ x: 65, y: 40 });
+
   const [estimate, setEstimate] = useState<any>(null);
   const [pickupCoords, setPickupCoords] = useState<{lat:number;lng:number}|null>({lat:51.0704775,lng:-1.8040052});
   const [onlineDrivers, setOnlineDrivers] = useState<any[]>([]);
@@ -35,6 +34,11 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
   const [isScheduled, setIsScheduled] = useState(false);
   const [scheduledFor, setScheduledFor] = useState('');
   const [staffInfo, setStaffInfo] = useState({ name: 'Reception', hotel: 'Hotel' });
+
+  // Safe hotel name — never undefined during SSR
+  const hotelName = (staffInfo.hotel && staffInfo.hotel !== 'Hotel')
+    ? staffInfo.hotel
+    : (params?.subdomain ? params.subdomain.charAt(0).toUpperCase() + params.subdomain.slice(1) : 'Caboose');
 
   useEffect(() => {
     const socket = io(API_URL, { transports: ['websocket','polling'] });
@@ -146,8 +150,8 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
     <div className="flex h-screen bg-[#F5F5F7]" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
       <aside className="w-56 bg-white border-r border-gray-100 flex flex-col p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm">{(staffInfo?.hotel && staffInfo.hotel !== "Hotel" ? staffInfo.hotel : params.subdomain)[0].toUpperCase()}</div>
-          <span className="font-bold text-sm text-gray-900">{(staffInfo?.hotel && staffInfo.hotel !== "Hotel" ? staffInfo.hotel : params.subdomain).toUpperCase()}</span>
+          <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white font-bold text-sm">{hotelName[0].toUpperCase()}</div>
+          <span className="font-bold text-sm text-gray-900">{hotelName.toUpperCase()}</span>
         </div>
         <nav className="flex flex-col gap-1 flex-1">
           {([['book','Book a Taxi'],['active','Active Bookings'],['history','History'],['analytics','Analytics']] as const).map(([id,label])=>(
