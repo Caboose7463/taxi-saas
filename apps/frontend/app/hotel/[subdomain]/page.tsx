@@ -14,7 +14,7 @@ interface Booking {
   driverPayout?: number; hotelCommission?: number;
 }
 
-export default function HotelDashboard() {
+export default function HotelDashboard({ params }: { params: { subdomain: string } }) {
   const [activeTab, setActiveTab] = useState<'book'|'active'|'history'|'analytics'>('book');
   const [loading, setLoading] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -35,10 +35,7 @@ export default function HotelDashboard() {
 
   useEffect(() => {
     const socket = io(API_URL, { transports: ['websocket','polling'] });
-    const interval = setInterval(() => {
-      setDriverPos(p => ({ x: Math.min(85,Math.max(15,p.x+(Math.random()-0.48)*3)), y: Math.min(85,Math.max(15,p.y+(Math.random()-0.48)*3)) }));
-      setDriver2Pos(p => ({ x: Math.min(85,Math.max(15,p.x+(Math.random()-0.52)*3)), y: Math.min(85,Math.max(15,p.y+(Math.random()-0.52)*3)) }));
-    }, 2000);
+
     // Always fetch fresh hotel profile from API so name/address are current
     const token = document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
     if (token) {
@@ -57,7 +54,7 @@ export default function HotelDashboard() {
       const saved = localStorage.getItem('staffInfo');
       if (saved) { const info = JSON.parse(saved); setStaffInfo(info); if (info.hotelAddress) setPickup(info.hotelAddress); }
     } catch {}
-    return () => { socket.close(); clearInterval(interval); };
+    return () => { socket.close();  };
   }, []);
 
   const getToken = () => document.cookie.split(';').find(c=>c.trim().startsWith('token='))?.split('=')[1];
@@ -143,8 +140,8 @@ export default function HotelDashboard() {
           ))}
         </nav>
         <div className="border-t border-gray-100 pt-4">
-          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-1 font-medium">️ Hotel Settings</a>
-          <a href="staff" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium"> Manage Staff</a>
+          <a href={`/hotel/${params.subdomain}/settings`} className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-1 font-medium">️ Hotel Settings</a>
+          <a href={`/hotel/${params.subdomain}/staff`} className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium"> Manage Staff</a>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{staffInfo.name[0]}</div>
             <div><p className="text-xs font-semibold text-gray-900">{staffInfo.name}</p><p className="text-[10px] text-gray-400">{staffInfo.hotel}</p></div>
@@ -229,7 +226,7 @@ export default function HotelDashboard() {
               <div className="w-80 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
                 <div className="p-4 border-b border-gray-50 flex justify-between items-center">
                   <p className="text-xs font-bold text-gray-700">LIVE DRIVER MAP</p>
-                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/><span className="text-xs text-green-600 font-medium">4 Online</span></div>
+                  <div className="flex items-center gap-1.5"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"/><span className="text-xs text-green-600 font-medium">Live</span></div>
                 </div>
                 <div className="relative flex-1 min-h-64 bg-slate-100">
                   <div className="absolute inset-0" style={{backgroundImage:'linear-gradient(rgba(0,0,0,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.04) 1px,transparent 1px)',backgroundSize:'30px 30px'}}/>

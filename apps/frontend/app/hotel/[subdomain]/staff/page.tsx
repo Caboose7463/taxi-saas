@@ -2,7 +2,7 @@
 import { API_URL } from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 
-export default function HotelStaff() {
+export default function HotelStaff({ params }: { params: { subdomain: string } }) {
   const [staff, setStaff] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -45,7 +45,7 @@ export default function HotelStaff() {
   return (
     <div className="min-h-screen bg-[#F5F5F7] p-8" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
       <div className="max-w-2xl mx-auto">
-        <a href="../" className="text-gray-400 hover:text-black text-sm block mb-6">← Back to Dashboard</a>
+        <a href={`/hotel/${params.subdomain}`} className="text-gray-400 hover:text-black text-sm block mb-6">← Back to Dashboard</a>
         <div className="flex justify-between items-start mb-8">
           <div>
             <h1 className="text-2xl font-bold mb-1">Staff Management</h1>

@@ -18,34 +18,54 @@ export class BookingService {
     this.mapsClient = new Client({});
   }
 
+  // Haversine formula - real distance between two lat/lng points
+  private haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 3958.8; // Earth radius in miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  // Geocode an address using OpenStreetMap Nominatim (free, no API key)
+  private async geocode(address: string): Promise<{lat: number; lon: number; display: string} | null> {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&countrycodes=gb&limit=1`;
+      const res = await fetch(url, { headers: { 'User-Agent': 'TransitProTaxi/1.0', 'Accept-Language': 'en' } });
+      const data = await res.json();
+      if (data && data[0]) {
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon), display: data[0].display_name };
+      }
+    } catch (e) {
+      console.warn('Nominatim geocoding failed:', e.message);
+    }
+    return null;
+  }
+
   async estimateFare(pickup: string, dropoff: string) {
-    const BASE_FARE = 3.50;       // £3.50 flag fall (original spec)
-    const PER_MILE = 2.50;        // £2.50 per mile (original spec)
-    const MIN_FARE = 8.00;        // minimum fare £8
-    const HOTEL_COMMISSION = 0.025; // 2.5% to hotel (original spec)
+    const BASE_FARE = 3.50;
+    const RATE_PER_MILE = 2.50;
+    const MINIMUM_FARE = 8.00;
+    const HOTEL_COMMISSION = 0.025;
 
-    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-
-    if (apiKey && apiKey !== 'YOUR_API_KEY_HERE' && apiKey !== '') {
+    // First try Google Maps if key is set
+    if (process.env.GOOGLE_MAPS_API_KEY) {
       try {
         const response = await this.mapsClient.distancematrix({
-          params: {
-            origins: [pickup],
-            destinations: [dropoff],
-            key: apiKey,
-            units: 'imperial' as any,
-          }
+          params: { origins: [pickup], destinations: [dropoff], key: process.env.GOOGLE_MAPS_API_KEY }
         });
-
         const element = response.data.rows[0]?.elements[0];
-        if (element && element.status === 'OK') {
-          const distanceMiles = element.distance.value / 1609.34;
-          const rawFare = BASE_FARE + (distanceMiles * PER_MILE);
-          const fare = Math.max(MIN_FARE, rawFare);
-          const etaMinutes = Math.round(element.duration.value / 60); // journey duration in minutes
+        if (element?.status === 'OK') {
+          const distanceMeters = element.distance.value;
+          const distanceMiles = distanceMeters / 1609.34;
+          const fare = Math.max(MINIMUM_FARE, BASE_FARE + (distanceMiles * RATE_PER_MILE));
+          const etaMinutes = Math.round(element.duration.value / 60);
           return {
             distanceMiles: Math.round(distanceMiles * 10) / 10,
-            distance: `${Math.round(distanceMiles)} miles`,
+            distance: `${Math.round(distanceMiles * 10) / 10} miles`,
             fare: Math.round(fare * 100) / 100,
             hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
             driverPayout: Math.round(fare * 0.90 * 100) / 100,
@@ -53,57 +73,50 @@ export class BookingService {
             etaMinutes,
           };
         }
-      } catch (error) {
-        // Fall through to estimation below
+      } catch (e) {
+        console.warn('Google Maps failed, falling back to Nominatim:', e.message);
       }
     }
 
-    // Intelligent fallback: estimate distance from address strings
-    // Simple heuristic: count words that differ + base distance estimate
-    const pickupLower = pickup.toLowerCase();
-    const dropoffLower = dropoff.toLowerCase();
-    
-    // Known UK city distances from common hotel locations (rough estimates)
-    let estimatedMiles = 12; // default
-    
-    const cityPairs: [string, string, number][] = [
-      ['london', 'salisbury', 83],
-      ['london', 'bristol', 118],
-      ['london', 'manchester', 209],
-      ['london', 'birmingham', 120],
-      ['london', 'oxford', 56],
-      ['london', 'cambridge', 60],
-      ['london', 'bath', 107],
-      ['london', 'cardiff', 151],
-      ['london', 'edinburgh', 413],
-      ['london', 'heathrow', 15],
-      ['london', 'gatwick', 27],
-      ['london', 'stansted', 35],
-      ['london', 'luton', 35],
-      ['salisbury', 'london', 83],
-      ['salisbury', 'bristol', 40],
-      ['salisbury', 'southampton', 22],
-      ['salisbury', 'bath', 38],
-      ['salisbury', 'bournemouth', 30],
-      ['salisbury', 'heathrow', 78],
-      ['salisbury', 'gatwick', 80],
-    ];
+    // Use Nominatim geocoding + Haversine for real distance (free, any address)
+    const [pickupGeo, dropoffGeo] = await Promise.all([
+      this.geocode(pickup),
+      this.geocode(dropoff),
+    ]);
 
-    for (const [from, to, miles] of cityPairs) {
-      if (pickupLower.includes(from) && dropoffLower.includes(to)) {
-        estimatedMiles = miles;
-        break;
-      }
-      if (dropoffLower.includes(from) && pickupLower.includes(to)) {
-        estimatedMiles = miles;
-        break;
-      }
+    if (pickupGeo && dropoffGeo) {
+      const straightLineMiles = this.haversineDistance(pickupGeo.lat, pickupGeo.lon, dropoffGeo.lat, dropoffGeo.lon);
+      // Road distance is typically 25-35% longer than straight line - use 1.3x multiplier
+      const estimatedRoadMiles = Math.round(straightLineMiles * 1.30 * 10) / 10;
+      const fare = Math.max(MINIMUM_FARE, BASE_FARE + (estimatedRoadMiles * RATE_PER_MILE));
+      const etaMinutes = Math.round(estimatedRoadMiles * 2.0); // ~2 min per mile
+      return {
+        distanceMiles: estimatedRoadMiles,
+        distance: `${estimatedRoadMiles} miles`,
+        fare: Math.round(fare * 100) / 100,
+        hotelCommission: Math.round(fare * HOTEL_COMMISSION * 100) / 100,
+        driverPayout: Math.round(fare * 0.90 * 100) / 100,
+        platformFee: Math.round(fare * (1 - HOTEL_COMMISSION - 0.90) * 100) / 100,
+        etaMinutes,
+      };
     }
 
-    const rawFare = BASE_FARE + (estimatedMiles * PER_MILE);
-    const fare = Math.max(MIN_FARE, rawFare);
-
-    const etaMinutes = Math.round(estimatedMiles * 2.0); // rough journey time: ~2 min/mile
+    // Final fallback - city pair lookup
+    const CITY_DISTANCES: Record<string, number> = {
+      'salisbury-london': 83, 'london-salisbury': 83,
+      'salisbury-bournemouth': 30, 'bournemouth-salisbury': 30,
+      'salisbury-southampton': 24, 'southampton-salisbury': 24,
+      'salisbury-bath': 38, 'bath-salisbury': 38,
+      'salisbury-bristol': 55, 'bristol-salisbury': 55,
+      'salisbury-winchester': 21, 'winchester-salisbury': 21,
+      'salisbury-heathrow': 80, 'heathrow-salisbury': 80,
+      'salisbury-gatwick': 85, 'gatwick-salisbury': 85,
+      'salisbury-basingstoke': 30, 'basingstoke-salisbury': 30,
+    };
+    const key = `${pickup.toLowerCase().split(',')[0].trim()}-${dropoff.toLowerCase().split(',')[0].trim()}`;
+    const estimatedMiles = CITY_DISTANCES[key] || Math.floor(Math.random() * 20 + 10);
+    const fare = Math.max(MINIMUM_FARE, BASE_FARE + (estimatedMiles * RATE_PER_MILE));
+    const etaMinutes = Math.round(estimatedMiles * 2.0);
     return {
       distanceMiles: estimatedMiles,
       distance: `~${estimatedMiles} miles (estimate)`,
@@ -114,7 +127,6 @@ export class BookingService {
       etaMinutes,
     };
   }
-
 
   async createBooking(data: Prisma.BookingUncheckedCreateInput) {
     const booking = await this.prisma.booking.create({

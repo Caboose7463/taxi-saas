@@ -2,7 +2,7 @@
 import { API_URL } from '@/lib/api';
 import React, { useEffect, useState } from 'react';
 
-export default function HotelSettings() {
+export default function HotelSettings({ params }: { params: { subdomain: string } }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ brand_color:'#000000', logo_url:'', welcome_text:'', address:'' });
@@ -44,7 +44,7 @@ export default function HotelSettings() {
   return (
     <div className="min-h-screen bg-[#F5F5F7] p-8" style={{fontFamily:'-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif'}}>
       <div className="max-w-2xl mx-auto">
-        <a href="../" className="text-gray-400 hover:text-black text-sm block mb-6">← Back to Dashboard</a>
+        <a href={`/hotel/${params.subdomain}`} className="text-gray-400 hover:text-black text-sm block mb-6">← Back to Dashboard</a>
         <h1 className="text-2xl font-bold mb-1">Hotel Branding</h1>
         <p className="text-gray-400 text-sm mb-8">Customise your hotel's look and feel across the platform.</p>
         {saved && <div className="mb-6 bg-green-50 border border-green-200 text-green-800 text-sm px-4 py-3 rounded-xl font-medium">✅ Saved successfully</div>}
