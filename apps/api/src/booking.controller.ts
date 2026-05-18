@@ -154,6 +154,14 @@ export class BookingController {
   }
 
 
+  @Patch('driver/status')
+  async updateDriverStatus(@Headers('authorization') auth: string, @Body() body: { isOnline: boolean }) {
+    const token = auth?.replace('Bearer ', '');
+    let driverId = '';
+    try { const p = this.jwtService.verify(token) as any; driverId = p.sub; } catch { throw new UnauthorizedException('Invalid token'); }
+    return this.bookingService.updateDriverStatus(driverId, body.isOnline);
+  }
+
   @Patch('driver/location')
   async updateDriverLocation(@Headers('authorization') auth: string, @Body() body: { lat: number; lng: number }) {
     const token = auth?.replace('Bearer ', '');

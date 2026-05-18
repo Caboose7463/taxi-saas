@@ -289,4 +289,16 @@ export class BookingService {
     });
   }
 
+
+  async updateDriverStatus(driverId: string, isOnline: boolean) {
+    return this.prisma.driver.update({
+      where: { id: driverId },
+      data: { 
+        isOnline, 
+        lastSeenAt: isOnline ? new Date() : undefined 
+      },
+      select: { id: true, name: true, isOnline: true }
+    });
+  }
+
 }
