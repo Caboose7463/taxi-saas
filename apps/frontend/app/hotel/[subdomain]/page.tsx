@@ -47,7 +47,7 @@ export default function HotelDashboard({ params }: { params: { subdomain: string
     const pollDrivers = () => {
       fetch(`${API_URL}/api/v1/bookings/drivers/online`,{headers:{'bypass-tunnel-reminder':'true'}})
         .then(r=>r.ok?r.json():[]).then(data=>{
-          const mapped = data.filter((d:any)=>d.currentLat&&d.currentLng).map((d:any)=>({
+          const mapped = data.filter((d:any)=>d.lat&&d.lng).map((d:any)=>({
             id:d.id, name:d.name||'Driver', lat:d.lat, lng:d.lng, status:'Online'
           }));
           setOnlineDrivers(mapped);
