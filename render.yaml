@@ -6,8 +6,8 @@ services:
     startCommand: cd apps/api && npm run start:prod
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql://postgres.hqbhcxgccvlsdrqnljbp:HettieBells0!2345@aws-1-eu-north-1.pooler.supabase.com:5432/postgres"
       - key: JWT_SECRET
         value: "super-secret-jwt-key-for-production"
       - key: GOOGLE_MAPS_API_KEY
-        sync: false
+        value: ""

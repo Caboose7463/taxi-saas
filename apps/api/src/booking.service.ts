@@ -42,7 +42,7 @@ export class BookingService {
           const distanceMiles = element.distance.value / 1609.34;
           const rawFare = BASE_FARE + (distanceMiles * PER_MILE);
           const fare = Math.max(MIN_FARE, rawFare);
-          const etaMinutes = Math.round((element.duration.value / 60) * 1.2); // add 20% for pickup travel
+          const etaMinutes = Math.round(element.duration.value / 60); // journey duration in minutes
           return {
             distanceMiles: Math.round(distanceMiles * 10) / 10,
             distance: `${Math.round(distanceMiles)} miles`,
@@ -103,7 +103,7 @@ export class BookingService {
     const rawFare = BASE_FARE + (estimatedMiles * PER_MILE);
     const fare = Math.max(MIN_FARE, rawFare);
 
-    const etaMinutes = Math.round(estimatedMiles * 2.5 + 5); // rough ETA: 2.5 min/mile + 5 min pickup
+    const etaMinutes = Math.round(estimatedMiles * 2.0); // rough journey time: ~2 min/mile
     return {
       distanceMiles: estimatedMiles,
       distance: `~${estimatedMiles} miles (estimate)`,
