@@ -1,7 +1,10 @@
 "use client";
 import { API_URL } from '@/lib/api';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { io } from 'socket.io-client';
+import dynamic from 'next/dynamic';
+
+const LiveMap = dynamic(() => import('@/components/LiveMap'), { ssr: false, loading: () => <div className="flex-1 min-h-64 bg-slate-100 rounded-2xl flex items-center justify-center"><div className="text-gray-400 text-sm">Loading map...</div></div> });
 
 interface Booking {
   id: string; pickupAddress: string; dropoffAddress: string;
@@ -125,6 +128,7 @@ export default function HotelDashboard() {
           ))}
         </nav>
         <div className="border-t border-gray-100 pt-4">
+          <a href="settings" className="block px-3 py-2 text-xs text-gray-500 hover:text-black rounded-xl hover:bg-gray-50 transition-colors mb-2 font-medium">⚙️ Hotel Settings</a>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">{staffInfo.name[0]}</div>
             <div><p className="text-xs font-semibold text-gray-900">{staffInfo.name}</p><p className="text-[10px] text-gray-400">{staffInfo.hotel}</p></div>

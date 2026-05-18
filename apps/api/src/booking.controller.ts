@@ -114,4 +114,17 @@ export class BookingController {
   async getAllDrivers() {
     return this.bookingService.getAllDrivers();
   }
+
+  @Get('hotel/profile')
+  async getHotelProfile(@Headers('authorization') auth: string) {
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.getHotelProfile(hotelId);
+  }
+
+  @Patch('hotel/branding')
+  async updateBranding(@Headers('authorization') auth: string, @Body() body: { brand_color?: string; logo_url?: string; welcome_text?: string; address?: string }) {
+    const hotelId = this.extractHotelId(auth);
+    return this.bookingService.updateHotelBranding(hotelId, body);
+  }
+
 }

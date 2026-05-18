@@ -188,4 +188,16 @@ export class BookingService {
     });
   }
 
+
+  async getHotelProfile(hotelId: string) {
+    return this.prisma.hotel.findUnique({
+      where: { id: hotelId },
+      select: { id:true, name:true, subdomain:true, address:true, brand_color:true, logo_url:true, welcome_text:true, commission_rate:true }
+    });
+  }
+
+  async updateHotelBranding(hotelId: string, data: { brand_color?: string; logo_url?: string; welcome_text?: string; address?: string }) {
+    return this.prisma.hotel.update({ where: { id: hotelId }, data });
+  }
+
 }
